@@ -1,6 +1,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <new>
+#include <stdexcept>
 
 #include <functional>
 
@@ -11,14 +12,13 @@ class ConnectionsTable {
 public:
     ConnectionsTable()
     {
-        alloc_table();
     }
 
     const T &get_table() {
         return *m_table;
     }
 
-    int update_table();
+    DWORD update_table();
 
     ~ConnectionsTable() { free_table(); }
 
@@ -28,43 +28,21 @@ private:
 
     using GetExtendedTablePtrs = std::variant<GetExtendedTcpTablePtr, GetExtendedUdpTablePtr>;
 
-    DWORD _call(
+    template<typename Table, typename TableClass>
+    DWORD _update_table(
         GetExtendedTablePtrs getExtendedTable, 
-        ConnectionProtocol proto,
-        ProtocolFamily af,
-        std::variant<TCP_TABLE_CLASS, UDP_TABLE_CLASS> tableClass)
-    {
-        DWORD dwRes;
-        switch (proto) {
-        case ConnectionProtocol::PROTO_TCP:
-            dwRes = std::get<GetExtendedTcpTablePtr>(getExtendedTable)
-                (m_table, &m_size, TRUE, (ULONG)af, std::get<TCP_TABLE_CLASS>(tableClass), 0);
-            break;
-        case ConnectionProtocol::PROTO_UDP:
-            dwRes = std::get<GetExtendedUdpTablePtr>(getExtendedTable)
-                (m_table, &m_size, TRUE, (ULONG)af, std::get<UDP_TABLE_CLASS>(tableClass), 0);
-            break;
-        default:
-            return -1;
-        }
-        
-
-        return dwRes;
-    }
-
-    int _update_table(
-        GetExtendedTablePtrs getExtendedTable, 
-        ConnectionProtocol proto, 
         ProtocolFamily af, 
         std::variant<TCP_TABLE_CLASS, UDP_TABLE_CLASS> tableClass)
     {
-        DWORD dwRes = _call(getExtendedTable, proto, af, tableClass);
+        DWORD dwRes = std::get<Table>(getExtendedTable)
+            (m_table, &m_size, TRUE, (ULONG)af, std::get<TableClass>(tableClass), 0);
         
         if (dwRes == ERROR_INSUFFICIENT_BUFFER) {
             free_table();
             alloc_table();
 
-            dwRes = _call(getExtendedTable, proto, af, tableClass);
+            dwRes = std::get<Table>(getExtendedTable)
+                (m_table, &m_size, TRUE, (ULONG)af, std::get<TableClass>(tableClass), 0);
 
             if (dwRes != NO_ERROR) {
                 free_table();
@@ -93,23 +71,20 @@ private:
     DWORD m_size { sizeof(T) };
 };
 
-
 template<>
-int ConnectionsTable<MIB_TCPTABLE_OWNER_PID, MIB_TCPROW_OWNER_PID>::update_table() {
-    int dwRes = _update_table(
-        GetExtendedTcpTable, 
-        ConnectionProtocol::PROTO_TCP, 
-        ProtocolFamily::INET, 
-        TCP_TABLE_OWNER_PID_ALL);
+DWORD ConnectionsTable<MIB_TCPTABLE_OWNER_PID, MIB_TCPROW_OWNER_PID>::update_table() {
+    DWORD dwRes = _update_table<GetExtendedTcpTablePtr, TCP_TABLE_CLASS>(
+            GetExtendedTcpTable,
+            ProtocolFamily::INET,
+            TCP_TABLE_OWNER_PID_ALL);
 
     return dwRes;
 }
 
 template<>
-int ConnectionsTable<MIB_TCP6TABLE_OWNER_PID, MIB_TCP6ROW_OWNER_PID>::update_table() {
-    int dwRes = _update_table(
+DWORD ConnectionsTable<MIB_TCP6TABLE_OWNER_PID, MIB_TCP6ROW_OWNER_PID>::update_table() {
+    DWORD dwRes = _update_table<GetExtendedTcpTablePtr, TCP_TABLE_CLASS>(
         GetExtendedTcpTable,
-        ConnectionProtocol::PROTO_TCP,
         ProtocolFamily::INET6,
         TCP_TABLE_OWNER_PID_ALL);
 
@@ -117,10 +92,9 @@ int ConnectionsTable<MIB_TCP6TABLE_OWNER_PID, MIB_TCP6ROW_OWNER_PID>::update_tab
 }
 
 template<>
-int ConnectionsTable<MIB_UDPTABLE_OWNER_PID, MIB_UDPROW_OWNER_PID>::update_table() {
-    int dwRes = _update_table(
+DWORD ConnectionsTable<MIB_UDPTABLE_OWNER_PID, MIB_UDPROW_OWNER_PID>::update_table() {
+    DWORD dwRes = _update_table<GetExtendedUdpTablePtr, UDP_TABLE_CLASS>(
         GetExtendedUdpTable,
-        ConnectionProtocol::PROTO_UDP,
         ProtocolFamily::INET,
         UDP_TABLE_OWNER_PID);
 
@@ -128,10 +102,9 @@ int ConnectionsTable<MIB_UDPTABLE_OWNER_PID, MIB_UDPROW_OWNER_PID>::update_table
 }
 
 template<>
-int ConnectionsTable<MIB_UDP6TABLE_OWNER_PID, MIB_UDP6ROW_OWNER_PID>::update_table() {
-    int dwRes = _update_table(
+DWORD ConnectionsTable<MIB_UDP6TABLE_OWNER_PID, MIB_UDP6ROW_OWNER_PID>::update_table() {
+    DWORD dwRes = _update_table<GetExtendedUdpTablePtr, UDP_TABLE_CLASS>(
         GetExtendedUdpTable,
-        ConnectionProtocol::PROTO_UDP,
         ProtocolFamily::INET6,
         UDP_TABLE_OWNER_PID);
 
