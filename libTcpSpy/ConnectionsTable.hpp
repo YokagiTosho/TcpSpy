@@ -10,18 +10,74 @@
 template<typename T, typename R>
 class ConnectionsTable {
 public:
+    struct Iterator {
+        using iterator_category = std::input_iterator_tag;
+        using difference_type   = std::ptrdiff_t;
+        using value_type        = T;
+        using pointer           = T*;
+        using reference         = T&;
+
+        Iterator(pointer ptr)
+            : m_ptr(ptr)
+        {}
+
+        Iterator(const Iterator &it)
+            : m_ptr(it.m_ptr)
+        {}
+
+        Iterator(Iterator &&it)
+            : m_ptr(it.m_ptr)
+        {
+            it.m_ptr = nullptr;
+        }
+
+        reference operator*() {
+            return *m_ptr;
+        }
+
+        pointer operator->() {
+            return m_ptr;
+        }
+
+        Iterator &operator++() {
+            m_ptr++
+            return *this;
+        }
+
+        Iterator &operator++(T) {
+            Iterator tmp = *this;
+
+            ++(*this);
+
+            return tmp;
+        }
+
+        friend bool operator== (const Iterator& a, const Iterator& b) { return a.m_ptr == b.m_ptr; };
+        friend bool operator!= (const Iterator& a, const Iterator& b) { return a.m_ptr != b.m_ptr; };
+
+    private:
+        pointer m_ptr;
+    };
+
     ConnectionsTable()
     {
     }
 
-    const T &get_table() {
-        return *m_table;
-    }
+    //const T &get_table() {
+    //    return *m_table;
+    //}
 
     DWORD update_table();
 
     ~ConnectionsTable() { free_table(); }
 
+    Iterator begin() {
+        return Iterator(&m_table->table[0]);
+    }
+
+    Iterator end() {
+        return Iterator(&m_table->table[m_table->dwNumEntries]);
+    }
 private:
     typedef DWORD (__stdcall *GetExtendedTcpTablePtr)(PVOID, PDWORD, BOOL, ULONG, TCP_TABLE_CLASS, ULONG);
     typedef DWORD (__stdcall *GetExtendedUdpTablePtr)(PVOID, PDWORD, BOOL, ULONG, UDP_TABLE_CLASS, ULONG);
