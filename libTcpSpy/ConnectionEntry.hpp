@@ -15,6 +15,8 @@
 #include <algorithm>
 #include <iostream>
 
+#include "Net.hpp"
+
 
 class Process {
 public:
@@ -120,8 +122,8 @@ inline IPAddress make_addr(DWORD addr) {
 }
 
 inline IPAddress makeIP6Address(const UCHAR *addr) {
-	IPAddress _addr;
-	std::copy(addr, addr + IP6AddressLen, std::get<IP6Address>(_addr).begin());
+	IP6Address _addr{};
+	std::copy(addr, addr + IP6AddressLen, _addr.begin());
 	return _addr;
 }
 
@@ -147,6 +149,7 @@ public:
 		m_proc.open();
 	}
 
+#if 0
 	IPAddress local_addr() const
 	{ 
 		if (std::holds_alternative<IP4Address>(m_local_addr)) {
@@ -154,6 +157,7 @@ public:
 		}
 		return std::get<IP6Address>(m_local_addr);
 	}
+#endif
 
 	DWORD local_port() const { return m_local_port; }
 
@@ -161,8 +165,11 @@ public:
 
 	ConnectionProtocol protocol() const { return m_proto; }
 
-	const std::wstring& local_addr_str() const { return m_local_addr_str; }
-	const std::wstring& local_port_str() const { return m_local_port_str; }
+	virtual const std::wstring local_addr_str() const = 0;
+
+	const std::wstring local_port_str() const {
+		return Net::ConvertPortToStr(m_local_port);
+	}
 
 	const std::wstring &get_process_name() const {
 		return m_proc.m_name;
@@ -175,9 +182,6 @@ protected:
 
 	IPAddress m_local_addr{ (DWORD)-1 };
 	DWORD m_local_port{ (DWORD)-1 };
-
-	std::wstring m_local_addr_str{ L"" };
-	std::wstring m_local_port_str{ L"" };
 };
 
 /*
@@ -220,16 +224,17 @@ public:
 
 	DWORD state() const { return m_state; }
 
-	const std::wstring& remote_addr_str() const { return m_remote_addr_str; }
-	const std::wstring& remote_port_str() const { return m_remote_port_str; }
+	virtual const std::wstring remote_addr_str() const = 0;
+
+	const std::wstring remote_port_str() const {
+		return Net::ConvertPortToStr(m_remote_port);
+	}
+
 protected:
 	IPAddress m_remote_addr{ (DWORD)-1 };
 	DWORD m_remote_port{ (DWORD)-1 };
 
 	DWORD m_state{ (DWORD)-1 };
-
-	std::wstring m_remote_addr_str{ L"" };
-	std::wstring m_remote_port_str{ L"" };
 };
 
 class ConnectionEntry4TCP : public ConnectionEntryTCP {
@@ -241,6 +246,16 @@ public:
 				ProtocolFamily::INET,
 				std::forward<Process>(proc))
 	{}
+
+	const std::wstring local_addr_str() const override
+	{
+		return Net::IPv4::ConvertAddrToStr(std::get<IP4Address>(m_local_addr));
+	}
+
+	const std::wstring remote_addr_str() const override
+	{
+		return Net::IPv4::ConvertAddrToStr(std::get<IP4Address>(m_remote_addr));
+	}
 private:
 };
 
@@ -254,6 +269,9 @@ public:
 				ProtocolFamily::INET,
 				std::forward<Process>(proc))
 	{}
+
+
+
 private:
 };
 

@@ -29,5 +29,11 @@
     <ClInclude Include="ConnectionsTable.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Net.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

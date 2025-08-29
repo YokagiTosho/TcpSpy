@@ -46,12 +46,18 @@ int main()
 
 void test_ConnectionsTable() {
     ConnectionsTable<MIB_TCPTABLE_OWNER_PID, MIB_TCPROW_OWNER_PID> table;
-    //ConnectionsTableGen<MIB_TCP6TABLE_OWNER_PID, MIB_TCP6ROW_OWNER_PID> table2;
-    //ConnectionsTableGen<MIB_UDPTABLE_OWNER_PID, MIB_UDPROW_OWNER_PID> table3;
-    //ConnectionsTableGen<MIB_UDP6TABLE_OWNER_PID, MIB_UDP6ROW_OWNER_PID> table4;
+    //ConnectionsTable<MIB_TCP6TABLE_OWNER_PID, MIB_TCP6ROW_OWNER_PID> table;
+    //ConnectionsTable<MIB_UDPTABLE_OWNER_PID, MIB_UDPROW_OWNER_PID> table3;
+    //ConnectionsTable<MIB_UDP6TABLE_OWNER_PID, MIB_UDP6ROW_OWNER_PID> table4;
 
     table.update_table();
 
+    for (const auto& row : table) {
+        auto ce = ConnectionEntry4TCP(row, Process(row.dwOwningPid));
+        std::wcout << ce.get_process_name() << "\t" << ce.local_addr_str() << "\t" << ce.local_port_str() << "\t" << ce.remote_port_str() << std::endl;
+    }
+
+#if 0
     for (int i = 0; i < table.get_table().dwNumEntries; i++) {
         auto row = table.get_table().table[i];
 
@@ -59,6 +65,7 @@ void test_ConnectionsTable() {
 
         std::wcout << ce.get_process_name() << "\t" << ce.local_port() << "\t" << ce.remote_port() << std::endl;
     }
+#endif
 
     
 }

@@ -40,11 +40,11 @@ public:
         }
 
         Iterator &operator++() {
-            m_ptr++
+            m_ptr++;
             return *this;
         }
 
-        Iterator &operator++(T) {
+        Iterator &operator++(int) {
             Iterator tmp = *this;
 
             ++(*this);
