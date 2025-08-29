@@ -141,7 +141,7 @@ public:
 		Process&& proc
 	)
 		: m_local_addr(local_addr)
-		, m_local_port(local_port)
+		, m_local_port(ntohs(local_port))
 		, m_proto(proto)
 		, m_af(af)
 		, m_proc(std::move(proc))
@@ -149,15 +149,7 @@ public:
 		m_proc.open();
 	}
 
-#if 0
-	IPAddress local_addr() const
-	{ 
-		if (std::holds_alternative<IP4Address>(m_local_addr)) {
-			return std::get<IP4Address>(m_local_addr);
-		}
-		return std::get<IP6Address>(m_local_addr);
-	}
-#endif
+	IPAddress local_addr() const { return m_local_addr; }
 
 	DWORD local_port() const { return m_local_port; }
 
@@ -197,7 +189,7 @@ public:
 			Process &&proc
 			)
 		: ConnectionEntry(row.dwLocalAddr, row.dwLocalPort, proto, af, std::forward<Process>(proc))
-		, m_remote_addr(row.dwRemoteAddr), m_remote_port(row.dwRemotePort), m_state(row.dwState)
+		, m_remote_addr(row.dwRemoteAddr), m_remote_port(ntohs(row.dwRemotePort)), m_state(row.dwState)
 	{
 		
 	}
@@ -270,8 +262,6 @@ public:
 				std::forward<Process>(proc))
 	{}
 
-
-
 private:
 };
 
@@ -285,6 +275,18 @@ public:
 				std::forward<Process>(proc))
 		, m_local_scope_id(row.dwLocalScopeId), m_remote_scope_id(row.dwRemoteScopeId)
 	{}
+
+	const std::wstring local_addr_str() const override
+	{
+		return Net::IPv6::ConvertAddrToStr(std::get<IP6Address>(m_local_addr).data());
+	}
+
+	const std::wstring remote_addr_str() const override
+	{
+		return Net::IPv6::ConvertAddrToStr(std::get<IP6Address>(m_remote_addr).data());
+	}
+
+
 private:
 	DWORD m_local_scope_id{ (DWORD)-1 };
 	DWORD m_remote_scope_id{ (DWORD)-1 };
@@ -303,6 +305,11 @@ public:
 	{}
 private:
 	DWORD m_local_scope_id{ (DWORD)-1 };
+
+	const std::wstring local_addr_str() const override
+	{
+		return Net::IPv6::ConvertAddrToStr(std::get<IP6Address>(m_local_addr).data());
+	}
 };
 
 

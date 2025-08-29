@@ -38,13 +38,21 @@ void test_ConnectionsTable();
 
 int main()
 {
+    WSADATA wsaData;
+    WORD wVersionRequested = MAKEWORD(2, 2);
+    if (WSAStartup(wVersionRequested, &wsaData) != 0) {
+        std::cerr << "WSAStartup failed" << std::endl;
+        exit(1);
+    }
     test_ConnectionsTable();
 
-
+    WSACleanup();
     return 0;
 }
 
 void test_ConnectionsTable() {
+    
+
     ConnectionsTable<MIB_TCPTABLE_OWNER_PID, MIB_TCPROW_OWNER_PID> table;
     //ConnectionsTable<MIB_TCP6TABLE_OWNER_PID, MIB_TCP6ROW_OWNER_PID> table;
     //ConnectionsTable<MIB_UDPTABLE_OWNER_PID, MIB_UDPROW_OWNER_PID> table3;
@@ -56,16 +64,6 @@ void test_ConnectionsTable() {
         auto ce = ConnectionEntry4TCP(row, Process(row.dwOwningPid));
         std::wcout << ce.get_process_name() << "\t" << ce.local_addr_str() << "\t" << ce.local_port_str() << "\t" << ce.remote_port_str() << std::endl;
     }
-
-#if 0
-    for (int i = 0; i < table.get_table().dwNumEntries; i++) {
-        auto row = table.get_table().table[i];
-
-        auto ce = ConnectionEntry4TCP(row, Process(row.dwOwningPid));
-
-        std::wcout << ce.get_process_name() << "\t" << ce.local_port() << "\t" << ce.remote_port() << std::endl;
-    }
-#endif
 
     
 }

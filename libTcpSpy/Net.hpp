@@ -9,6 +9,19 @@
 
 #include "Utils.hpp"
 
+inline static std::wstring _SockaddrToWString(LPSOCKADDR sock_addr, DWORD len) {
+	WCHAR buf[64];
+	DWORD buf_size = 64;
+
+	INT res = WSAAddressToStringW(sock_addr, len, NULL, buf, &buf_size);
+
+	if (res == SOCKET_ERROR) {
+		std::cerr << "`WSAAddressToStringW` failed: " << WSAGetLastError() << std::endl;
+		exit(1);
+	}
+
+	return { buf };
+}
 
 namespace Net {
 	inline std::wstring ConvertPortToStr(DWORD port) {
@@ -16,24 +29,24 @@ namespace Net {
 	}
 
 	namespace IPv4 {
-		inline std::wstring ConvertAddrToStr(DWORD a) {
-			in_addr addr{};
-			addr.S_un.S_addr = a;
-#define STRIP4LEN 16
-			CHAR buf[STRIP4LEN];
+		inline std::wstring ConvertAddrToStr(DWORD a) {			
+			sockaddr_in sin{};
+			sin.sin_family = AF_INET;
+			sin.sin_addr.s_addr = a;
 
-			PCSTR res = inet_ntop(AF_INET, (void*)&addr, buf, STRIP4LEN);
-			if (res == nullptr) {
-				throw std::runtime_error("Failed to cast addr to AF_INET IP address");
-			}
-			return Utils::ConvertFrom<CHAR[]>(buf);	
+			return ::_SockaddrToWString((SOCKADDR*)&sin, sizeof(sin));
 		}
-
-		
 	}
 
 	namespace IPv6 {
-#define STRIP6LEN 39
+
+		inline std::wstring ConvertAddrToStr(const UCHAR a[]) {
+			sockaddr_in6 s_in{};
+			s_in.sin6_family = AF_INET6;
+			memcpy(s_in.sin6_addr.u.Byte, a, 16);
+
+			return ::_SockaddrToWString((SOCKADDR*)&s_in, sizeof(s_in));
+		}
 
 	}
 }

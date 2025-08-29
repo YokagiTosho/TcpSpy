@@ -62,10 +62,6 @@ public:
     {
     }
 
-    //const T &get_table() {
-    //    return *m_table;
-    //}
-
     DWORD update_table();
 
     ~ConnectionsTable() { free_table(); }
