@@ -13,9 +13,9 @@ public:
     struct Iterator {
         using iterator_category = std::input_iterator_tag;
         using difference_type   = std::ptrdiff_t;
-        using value_type        = T;
-        using pointer           = T*;
-        using reference         = T&;
+        using value_type        = R;
+        using pointer           = R*;
+        using reference         = R&;
 
         Iterator(pointer ptr)
             : m_ptr(ptr)
@@ -54,7 +54,6 @@ public:
 
         friend bool operator== (const Iterator& a, const Iterator& b) { return a.m_ptr == b.m_ptr; };
         friend bool operator!= (const Iterator& a, const Iterator& b) { return a.m_ptr != b.m_ptr; };
-
     private:
         pointer m_ptr;
     };
