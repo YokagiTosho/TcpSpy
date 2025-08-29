@@ -265,15 +265,27 @@ public:
 private:
 };
 
-class ConnectionEntry6TCP : public ConnectionEntryTCP {
+class ConnectionEntry6 {
+public:
+	ConnectionEntry6(DWORD local_scope_id)
+		: m_local_scope_id(local_scope_id)
+	{}
+	
+	DWORD local_scope_id() const { return m_local_scope_id; }
+private:
+	DWORD m_local_scope_id{ (DWORD)-1 };
+};
+
+class ConnectionEntry6TCP : public ConnectionEntry6, public ConnectionEntryTCP {
 public:
 	ConnectionEntry6TCP(const MIB_TCP6ROW_OWNER_PID& row, Process&& proc)
-		: ConnectionEntryTCP(
+		: ConnectionEntry6(row.dwLocalScopeId)
+		, ConnectionEntryTCP(
 				row,
 				ConnectionProtocol::PROTO_TCP,
 				ProtocolFamily::INET6,
 				std::forward<Process>(proc))
-		, m_local_scope_id(row.dwLocalScopeId), m_remote_scope_id(row.dwRemoteScopeId)
+		, m_remote_scope_id(row.dwRemoteScopeId)
 	{}
 
 	const std::wstring local_addr_str() const override
@@ -285,26 +297,21 @@ public:
 	{
 		return Net::IPv6::ConvertAddrToStr(std::get<IP6Address>(m_remote_addr).data());
 	}
-
-
 private:
-	DWORD m_local_scope_id{ (DWORD)-1 };
 	DWORD m_remote_scope_id{ (DWORD)-1 };
 };
 
-class ConnectionEntry6UDP : public ConnectionEntry {
+class ConnectionEntry6UDP : public ConnectionEntry6, public ConnectionEntry {
 public:
 	ConnectionEntry6UDP(const MIB_UDP6ROW_OWNER_PID& row, Process&& proc)
-		: ConnectionEntry(
+		: ConnectionEntry6(row.dwLocalScopeId)
+		, ConnectionEntry(
 				::makeIP6Address(row.ucLocalAddr),
 				row.dwLocalPort,
 				ConnectionProtocol::PROTO_UDP,
 				ProtocolFamily::INET6,
 				std::forward<Process>(proc))
-		, m_local_scope_id(row.dwLocalScopeId)
 	{}
-private:
-	DWORD m_local_scope_id{ (DWORD)-1 };
 
 	const std::wstring local_addr_str() const override
 	{
