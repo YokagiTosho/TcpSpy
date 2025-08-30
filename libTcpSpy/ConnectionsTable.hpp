@@ -4,6 +4,7 @@
 #include <stdexcept>
 
 #include <functional>
+#include <type_traits>
 
 #include "ConnectionEntry.hpp"
 
@@ -58,21 +59,38 @@ public:
         pointer m_ptr;
     };
 
+    // Type for suitable ConnectionEntry type
+    using ConnectionEntryT = std::conditional_t<
+        std::is_same_v<T, MIB_TCPTABLE_OWNER_PID>,
+        ConnectionEntry4TCP,
+        std::conditional_t<
+        std::is_same_v<T, MIB_TCP6TABLE_OWNER_PID>,
+        ConnectionEntry6TCP,
+        std::conditional_t<
+        std::is_same_v<T, MIB_UDPTABLE_OWNER_PID>,
+        ConnectionEntry4UDP,
+        ConnectionEntry6UDP
+        >
+        >
+    >;
+
     ConnectionsTable()
     {
+    }
+
+    ConnectionsTable(ConnectionsTable &&ct) noexcept
+        : m_table(ct.m_table), m_size(ct.m_size)
+    {
+        ct.m_table = nullptr;
+        ct.m_size = 0;
     }
 
     DWORD update_table();
 
     ~ConnectionsTable() { free_table(); }
 
-    Iterator begin() {
-        return Iterator(&m_table->table[0]);
-    }
-
-    Iterator end() {
-        return Iterator(&m_table->table[m_table->dwNumEntries]);
-    }
+    Iterator begin() { return Iterator(&m_table->table[0]); }
+    Iterator end() { return Iterator(&m_table->table[m_table->dwNumEntries]); }
 private:
     typedef DWORD (__stdcall *GetExtendedTcpTablePtr)(PVOID, PDWORD, BOOL, ULONG, TCP_TABLE_CLASS, ULONG);
     typedef DWORD (__stdcall *GetExtendedUdpTablePtr)(PVOID, PDWORD, BOOL, ULONG, UDP_TABLE_CLASS, ULONG);
@@ -125,6 +143,11 @@ private:
     T *m_table { nullptr };
     DWORD m_size { sizeof(T) };
 };
+
+using TcpTable4 = ConnectionsTable<MIB_TCPTABLE_OWNER_PID, MIB_TCPROW_OWNER_PID>;
+using TcpTable6 = ConnectionsTable<MIB_TCP6TABLE_OWNER_PID, MIB_TCP6ROW_OWNER_PID>;
+using UdpTable4 = ConnectionsTable<MIB_UDPTABLE_OWNER_PID, MIB_UDPROW_OWNER_PID>;
+using UdpTable6 = ConnectionsTable<MIB_UDP6TABLE_OWNER_PID, MIB_UDP6ROW_OWNER_PID>;
 
 template<>
 DWORD ConnectionsTable<MIB_TCPTABLE_OWNER_PID, MIB_TCPROW_OWNER_PID>::update_table() {

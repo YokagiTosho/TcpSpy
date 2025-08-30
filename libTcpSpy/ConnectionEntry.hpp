@@ -18,6 +18,7 @@
 #include <utility>
 
 #include "Net.hpp"
+#include <cassert>
 
 
 class Process {
@@ -119,10 +120,6 @@ using IP6Address = std::array<UCHAR, IP6AddressLen>;
 
 using IPAddress = std::variant<IP4Address, IP6Address>;
 
-inline IPAddress make_addr(DWORD addr) {
-	return {addr};
-}
-
 inline IPAddress makeIP6Address(const UCHAR *addr) {
 	IP6Address _addr{};
 	std::copy(addr, addr + IP6AddressLen, _addr.begin());
@@ -173,6 +170,17 @@ public:
 
 	virtual ~ConnectionEntry() = default;
 protected:
+	const std::wstring _get_addr_str(IPAddress addr) const {
+		switch (m_af) {
+		case ProtocolFamily::INET:
+			return Net::ConvertAddrToStr(std::get<IP4Address>(addr));
+		case ProtocolFamily::INET6:
+			return Net::ConvertAddrToStr(std::get<IP6Address>(addr).data());
+		default:
+			break;
+		}
+		assert(false);
+	}
 	Process m_proc;
 
 	ConnectionProtocol m_proto{ ConnectionProtocol::UNSET };
@@ -180,17 +188,6 @@ protected:
 
 	IPAddress m_local_addr{ (DWORD)-1 };
 	DWORD m_local_port{ (DWORD)-1 };
-private:
-	const std::wstring _get_addr_str(IPAddress addr) {
-		switch (m_af) {
-			case ProtocolFamily::INET:
-				return Net::ConvertAddrToStr(std::get<IP4Address>(addr));
-			case ProtocolFamily::INET6:
-				return Net::ConvertAddrToStr(std::get<IP6Address>(addr).data());
-			default:
-				assert(false);
-		}
-	}
 };
 
 /*
@@ -205,7 +202,7 @@ public:
 			ProtocolFamily af,
 			Process &&proc
 			)
-		: ConnectionEntry(row.dwLocalAddr, row.dwLocalPort, proto, af, std::move<Process>(proc))
+		: ConnectionEntry(row.dwLocalAddr, row.dwLocalPort, proto, af, std::move(proc))
 		, m_remote_addr(row.dwRemoteAddr), m_remote_port(ntohs(row.dwRemotePort)), m_state(row.dwState)
 	{}
 
@@ -215,10 +212,9 @@ public:
 			ProtocolFamily af,
 			Process &&proc
 			)
-		: ConnectionEntry(::makeIP6Address(row.ucLocalAddr), row.dwLocalPort, proto, af, std::move<Process>(proc))
+		: ConnectionEntry(::makeIP6Address(row.ucLocalAddr), row.dwLocalPort, proto, af, std::move(proc))
 		, m_remote_addr(::makeIP6Address(row.ucRemoteAddr)), m_remote_port(ntohs(row.dwRemotePort)), m_state(row.dwState)
 	{}
-
 
 	IPAddress remote_addr() const { return m_remote_addr; }
 
@@ -249,9 +245,8 @@ public:
 				row,
 				ConnectionProtocol::PROTO_TCP,
 				ProtocolFamily::INET,
-				std::move<Process>(proc))
+				std::move(proc))
 	{}
-private:
 };
 
 class ConnectionEntry4UDP : public ConnectionEntry {
@@ -262,9 +257,8 @@ public:
 				row.dwLocalPort,
 				ConnectionProtocol::PROTO_UDP,
 				ProtocolFamily::INET,
-				std::move<Process>(proc))
+				std::move(proc))
 	{}
-private:
 };
 
 class ConnectionEntry6 {
@@ -288,9 +282,11 @@ public:
 				row,
 				ConnectionProtocol::PROTO_TCP,
 				ProtocolFamily::INET6,
-				std::move<Process>(proc))
+				std::move(proc))
 		, m_remote_scope_id(row.dwRemoteScopeId)
 	{}
+
+	DWORD remote_scope_id() const { return m_remote_scope_id; }
 private:
 	DWORD m_remote_scope_id{ (DWORD)-1 };
 };
@@ -304,7 +300,7 @@ public:
 				row.dwLocalPort,
 				ConnectionProtocol::PROTO_UDP,
 				ProtocolFamily::INET6,
-				std::move<Process>(proc))
+				std::move(proc))
 	{}
 };
 
