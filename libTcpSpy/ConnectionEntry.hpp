@@ -47,7 +47,7 @@ public:
 		m_path = get_proc_path(hProc);
 
 		m_name = extract_exe_name(m_path);
-		
+
 		m_icon = get_proc_icon(m_path);
 
 		CloseHandle(hProc);
@@ -63,7 +63,7 @@ private:
 		if (!GetModuleFileNameEx(hProc, NULL, wProcName, proc_name_len)) {
 			return L"Can not obtain ownership information";
 		}
-		 
+
 		return std::wstring(wProcName);
 	}
 
@@ -272,7 +272,7 @@ public:
 	ConnectionEntry6(DWORD local_scope_id)
 		: m_local_scope_id(local_scope_id)
 	{}
-	
+
 	DWORD local_scope_id() const { return m_local_scope_id; }
 
 	virtual ~ConnectionEntry6() = default;
@@ -309,4 +309,3 @@ public:
 };
 
 #endif
-
