@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CONNECTION_ENTRY_HPP
+#define CONNECTION_ENTRY_HPP
 
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -14,6 +15,7 @@
 #include <array>
 #include <algorithm>
 #include <iostream>
+#include <utility>
 
 #include "Net.hpp"
 
@@ -157,7 +159,9 @@ public:
 
 	ConnectionProtocol protocol() const { return m_proto; }
 
-	virtual const std::wstring local_addr_str() const = 0;
+	const std::wstring local_addr_str() const {
+		return _get_addr_str(m_local_addr);
+	}
 
 	const std::wstring local_port_str() const {
 		return Net::ConvertPortToStr(m_local_port);
@@ -166,6 +170,8 @@ public:
 	const std::wstring &get_process_name() const {
 		return m_proc.m_name;
 	}
+
+	virtual ~ConnectionEntry() = default;
 protected:
 	Process m_proc;
 
@@ -174,6 +180,17 @@ protected:
 
 	IPAddress m_local_addr{ (DWORD)-1 };
 	DWORD m_local_port{ (DWORD)-1 };
+private:
+	const std::wstring _get_addr_str(IPAddress addr) {
+		switch (m_af) {
+			case ProtocolFamily::INET:
+				return Net::ConvertAddrToStr(std::get<IP4Address>(addr));
+			case ProtocolFamily::INET6:
+				return Net::ConvertAddrToStr(std::get<IP6Address>(addr).data());
+			default:
+				assert(false);
+		}
+	}
 };
 
 /*
@@ -188,11 +205,9 @@ public:
 			ProtocolFamily af,
 			Process &&proc
 			)
-		: ConnectionEntry(row.dwLocalAddr, row.dwLocalPort, proto, af, std::forward<Process>(proc))
+		: ConnectionEntry(row.dwLocalAddr, row.dwLocalPort, proto, af, std::move<Process>(proc))
 		, m_remote_addr(row.dwRemoteAddr), m_remote_port(ntohs(row.dwRemotePort)), m_state(row.dwState)
-	{
-		
-	}
+	{}
 
 	ConnectionEntryTCP(
 			const MIB_TCP6ROW_OWNER_PID& row,
@@ -200,28 +215,26 @@ public:
 			ProtocolFamily af,
 			Process &&proc
 			)
-		: ConnectionEntry(::makeIP6Address(row.ucLocalAddr), row.dwLocalPort, proto, af, std::forward<Process>(proc))
-		, m_remote_addr(::makeIP6Address(row.ucRemoteAddr)), m_remote_port(row.dwRemotePort), m_state(row.dwState)
-	{ }
+		: ConnectionEntry(::makeIP6Address(row.ucLocalAddr), row.dwLocalPort, proto, af, std::move<Process>(proc))
+		, m_remote_addr(::makeIP6Address(row.ucRemoteAddr)), m_remote_port(ntohs(row.dwRemotePort)), m_state(row.dwState)
+	{}
 
 
-	IPAddress remote_addr() const {
-		if (std::holds_alternative<IP4Address>(m_remote_addr)) {
-			return std::get<IP4Address>(m_remote_addr);
-		}
-		return std::get<IP6Address>(m_remote_addr);
-	}
+	IPAddress remote_addr() const { return m_remote_addr; }
 
 	DWORD remote_port() const { return m_remote_port; }
 
 	DWORD state() const { return m_state; }
 
-	virtual const std::wstring remote_addr_str() const = 0;
+	const std::wstring remote_addr_str() const {
+		return _get_addr_str(m_remote_addr);
+	}
 
 	const std::wstring remote_port_str() const {
 		return Net::ConvertPortToStr(m_remote_port);
 	}
 
+	virtual ~ConnectionEntryTCP() = default;
 protected:
 	IPAddress m_remote_addr{ (DWORD)-1 };
 	DWORD m_remote_port{ (DWORD)-1 };
@@ -236,18 +249,8 @@ public:
 				row,
 				ConnectionProtocol::PROTO_TCP,
 				ProtocolFamily::INET,
-				std::forward<Process>(proc))
+				std::move<Process>(proc))
 	{}
-
-	const std::wstring local_addr_str() const override
-	{
-		return Net::IPv4::ConvertAddrToStr(std::get<IP4Address>(m_local_addr));
-	}
-
-	const std::wstring remote_addr_str() const override
-	{
-		return Net::IPv4::ConvertAddrToStr(std::get<IP4Address>(m_remote_addr));
-	}
 private:
 };
 
@@ -255,13 +258,12 @@ class ConnectionEntry4UDP : public ConnectionEntry {
 public:
 	ConnectionEntry4UDP(const MIB_UDPROW_OWNER_PID& row, Process&& proc)
 		: ConnectionEntry(
-				row.dwLocalPort,
 				row.dwLocalAddr,
+				row.dwLocalPort,
 				ConnectionProtocol::PROTO_UDP,
 				ProtocolFamily::INET,
-				std::forward<Process>(proc))
+				std::move<Process>(proc))
 	{}
-
 private:
 };
 
@@ -272,6 +274,8 @@ public:
 	{}
 	
 	DWORD local_scope_id() const { return m_local_scope_id; }
+
+	virtual ~ConnectionEntry6() = default;
 private:
 	DWORD m_local_scope_id{ (DWORD)-1 };
 };
@@ -284,19 +288,9 @@ public:
 				row,
 				ConnectionProtocol::PROTO_TCP,
 				ProtocolFamily::INET6,
-				std::forward<Process>(proc))
+				std::move<Process>(proc))
 		, m_remote_scope_id(row.dwRemoteScopeId)
 	{}
-
-	const std::wstring local_addr_str() const override
-	{
-		return Net::IPv6::ConvertAddrToStr(std::get<IP6Address>(m_local_addr).data());
-	}
-
-	const std::wstring remote_addr_str() const override
-	{
-		return Net::IPv6::ConvertAddrToStr(std::get<IP6Address>(m_remote_addr).data());
-	}
 private:
 	DWORD m_remote_scope_id{ (DWORD)-1 };
 };
@@ -310,14 +304,9 @@ public:
 				row.dwLocalPort,
 				ConnectionProtocol::PROTO_UDP,
 				ProtocolFamily::INET6,
-				std::forward<Process>(proc))
+				std::move<Process>(proc))
 	{}
-
-	const std::wstring local_addr_str() const override
-	{
-		return Net::IPv6::ConvertAddrToStr(std::get<IP6Address>(m_local_addr).data());
-	}
 };
 
-
+#endif
 

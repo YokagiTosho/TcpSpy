@@ -28,29 +28,22 @@ namespace Net {
 		return Utils::ConvertFrom<DWORD>(port);
 	}
 
-	namespace IPv4 {
-		inline std::wstring ConvertAddrToStr(DWORD a) {			
+	inline std::wstring ConvertAddrToStr(DWORD a) {
 			sockaddr_in sin{};
 			sin.sin_family = AF_INET;
 			sin.sin_addr.s_addr = a;
 
 			return ::_SockaddrToWString((SOCKADDR*)&sin, sizeof(sin));
-		}
 	}
 
-	namespace IPv6 {
+	inline std::wstring ConvertAddrToStr(const UCHAR a[]) {
+		sockaddr_in6 s_in{};
+		s_in.sin6_family = AF_INET6;
+		memcpy(s_in.sin6_addr.u.Byte, a, 16);
 
-		inline std::wstring ConvertAddrToStr(const UCHAR a[]) {
-			sockaddr_in6 s_in{};
-			s_in.sin6_family = AF_INET6;
-			memcpy(s_in.sin6_addr.u.Byte, a, 16);
-
-			return ::_SockaddrToWString((SOCKADDR*)&s_in, sizeof(s_in));
-		}
-
+		return ::_SockaddrToWString((SOCKADDR*)&s_in, sizeof(s_in));
 	}
 }
 
-
-
 #endif
+
