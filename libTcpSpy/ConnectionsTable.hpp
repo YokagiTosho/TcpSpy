@@ -8,6 +8,8 @@
 
 #include "ConnectionEntry.hpp"
 
+using TableClasses = std::variant<TCP_TABLE_CLASS, UDP_TABLE_CLASS>;
+
 template<typename T, typename R>
 class ConnectionsTable {
 public:
@@ -26,7 +28,7 @@ public:
             : m_ptr(it.m_ptr)
         {}
 
-        Iterator(Iterator &&it)
+        Iterator(Iterator &&it) noexcept
             : m_ptr(it.m_ptr)
         {
             it.m_ptr = nullptr;
@@ -82,21 +84,22 @@ public:
         : m_table(ct.m_table), m_size(ct.m_size)
     {
         ct.m_table = nullptr;
-        ct.m_size = 0;
+        ct.m_size = sizeof(T);
     }
 
     DWORD update_table();
 
     ~ConnectionsTable() { free_table(); }
 
-    Iterator begin() { return Iterator(&m_table->table[0]); }
-    Iterator end() { return Iterator(&m_table->table[m_table->dwNumEntries]); }
+    Iterator begin() { return m_table ? Iterator(&m_table->table[0]) : nullptr; }
+    Iterator end() { return m_table ? Iterator(&m_table->table[m_table->dwNumEntries]) : nullptr; }
+
 private:
     typedef DWORD (__stdcall *GetExtendedTcpTablePtr)(PVOID, PDWORD, BOOL, ULONG, TCP_TABLE_CLASS, ULONG);
     typedef DWORD (__stdcall *GetExtendedUdpTablePtr)(PVOID, PDWORD, BOOL, ULONG, UDP_TABLE_CLASS, ULONG);
 
     using GetExtendedTablePtrs = std::variant<GetExtendedTcpTablePtr, GetExtendedUdpTablePtr>;
-    using TableClasses = std::variant<TCP_TABLE_CLASS, UDP_TABLE_CLASS>;
+
 
     template<typename Table, typename TableClass, ULONG AddressFamily = AF_INET>
     DWORD _update_table(
