@@ -131,6 +131,7 @@
   <ItemGroup>
     <ClInclude Include="ConnectionEntry.hpp" />
     <ClInclude Include="ConnectionsTable.hpp" />
+    <ClInclude Include="ConnectionTableRegistry.hpp" />
     <ClInclude Include="Net.hpp" />
     <ClInclude Include="Process.hpp" />
     <ClInclude Include="Utils.hpp" />

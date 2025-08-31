@@ -38,5 +38,8 @@
     <ClInclude Include="Process.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ConnectionTableRegistry.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

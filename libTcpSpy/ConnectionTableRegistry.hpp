@@ -64,14 +64,14 @@ public:
 
 private:
     template<typename T>
-    void add_rows(ConnectionEntryPtrs &rows, T &table) {
+    void add_rows(T &table) {
         for (const auto& row : table) {
             DWORD proc_pid = row.dwOwningPid;
             std::shared_ptr<Process> proc_ptr;
 
-            if (m_proc_cache.find(proc_pid) != m_proc_cache.end()) {
+            if (auto it = m_proc_cache.find(proc_pid); it != m_proc_cache.end()) {
                 // proc is in cache
-                proc_ptr = m_proc_cache[proc_pid];
+                proc_ptr = it->second;
                 
             } else {
                 proc_ptr = std::make_shared<Process>(row.dwOwningPid);

@@ -154,7 +154,7 @@ using UdpTable4 = ConnectionsTable<MIB_UDPTABLE_OWNER_PID, MIB_UDPROW_OWNER_PID>
 using UdpTable6 = ConnectionsTable<MIB_UDP6TABLE_OWNER_PID, MIB_UDP6ROW_OWNER_PID>;
 
 template<>
-DWORD ConnectionsTable<MIB_TCPTABLE_OWNER_PID, MIB_TCPROW_OWNER_PID>::update_table() {
+DWORD ConnectionsTable<MIB_TCPTABLE_OWNER_PID, MIB_TCPROW_OWNER_PID>::update() {
     DWORD dwRes = _update_table<GetExtendedTcpTablePtr, TCP_TABLE_CLASS>
         (
          GetExtendedTcpTable,
@@ -165,7 +165,7 @@ DWORD ConnectionsTable<MIB_TCPTABLE_OWNER_PID, MIB_TCPROW_OWNER_PID>::update_tab
 }
 
 template<>
-DWORD ConnectionsTable<MIB_TCP6TABLE_OWNER_PID, MIB_TCP6ROW_OWNER_PID>::update_table() {
+DWORD ConnectionsTable<MIB_TCP6TABLE_OWNER_PID, MIB_TCP6ROW_OWNER_PID>::update() {
     DWORD dwRes = _update_table<GetExtendedTcpTablePtr, TCP_TABLE_CLASS, AF_INET6>
         (
          GetExtendedTcpTable,
@@ -176,7 +176,7 @@ DWORD ConnectionsTable<MIB_TCP6TABLE_OWNER_PID, MIB_TCP6ROW_OWNER_PID>::update_t
 }
 
 template<>
-DWORD ConnectionsTable<MIB_UDPTABLE_OWNER_PID, MIB_UDPROW_OWNER_PID>::update_table() {
+DWORD ConnectionsTable<MIB_UDPTABLE_OWNER_PID, MIB_UDPROW_OWNER_PID>::update() {
     DWORD dwRes = _update_table<GetExtendedUdpTablePtr, UDP_TABLE_CLASS>
         (
          GetExtendedUdpTable,
@@ -187,7 +187,7 @@ DWORD ConnectionsTable<MIB_UDPTABLE_OWNER_PID, MIB_UDPROW_OWNER_PID>::update_tab
 }
 
 template<>
-DWORD ConnectionsTable<MIB_UDP6TABLE_OWNER_PID, MIB_UDP6ROW_OWNER_PID>::update_table() {
+DWORD ConnectionsTable<MIB_UDP6TABLE_OWNER_PID, MIB_UDP6ROW_OWNER_PID>::update() {
     DWORD dwRes = _update_table<GetExtendedUdpTablePtr, UDP_TABLE_CLASS, AF_INET6>
         (
          GetExtendedUdpTable,

@@ -16,6 +16,7 @@
 #include <iostream>
 #include <cassert>
 #include <utility>
+#include <vector>
 
 #include "Net.hpp"
 #include "Process.hpp"
@@ -57,15 +58,14 @@ public:
 		DWORD local_port,
 		ConnectionProtocol proto,
 		ProtocolFamily af,
-		Process&& proc
+		ProcessPtr proc
 	)
 		: m_local_addr(local_addr)
 		, m_local_port(ntohs(local_port))
 		, m_proto(proto)
 		, m_af(af)
-		, m_proc(std::move(proc))
+		, m_proc(proc)
 	{
-		m_proc.open();
 	}
 
 	IPAddress local_addr() const { return m_local_addr; }
@@ -85,7 +85,7 @@ public:
 	}
 
 	const std::wstring &get_process_name() const {
-		return m_proc.m_name;
+		return m_proc->m_name;
 	}
 
 	virtual ~ConnectionEntry() = default;
@@ -101,7 +101,7 @@ protected:
 		}
 		assert(false);
 	}
-	Process m_proc;
+	ProcessPtr m_proc;
 
 	ConnectionProtocol m_proto{ ConnectionProtocol::UNSET };
 	ProtocolFamily m_af{ ProtocolFamily::UNSET };
@@ -120,9 +120,9 @@ public:
 			const MIB_TCPROW_OWNER_PID& row,
 			ConnectionProtocol proto,
 			ProtocolFamily af,
-			Process &&proc
+			ProcessPtr proc
 			)
-		: ConnectionEntry(row.dwLocalAddr, row.dwLocalPort, proto, af, std::move(proc))
+		: ConnectionEntry(row.dwLocalAddr, row.dwLocalPort, proto, af, proc)
 		, m_remote_addr(row.dwRemoteAddr), m_remote_port(ntohs(row.dwRemotePort)), m_state(row.dwState)
 	{}
 
@@ -130,9 +130,9 @@ public:
 			const MIB_TCP6ROW_OWNER_PID& row,
 			ConnectionProtocol proto,
 			ProtocolFamily af,
-			Process &&proc
+			ProcessPtr proc
 			)
-		: ConnectionEntry(::makeIP6Address(row.ucLocalAddr), row.dwLocalPort, proto, af, std::move(proc))
+		: ConnectionEntry(::makeIP6Address(row.ucLocalAddr), row.dwLocalPort, proto, af, proc)
 		, m_remote_addr(::makeIP6Address(row.ucRemoteAddr)), m_remote_port(ntohs(row.dwRemotePort)), m_state(row.dwState)
 	{}
 
@@ -160,24 +160,24 @@ protected:
 
 class ConnectionEntry4TCP : public ConnectionEntryTCP {
 public:
-	ConnectionEntry4TCP(const MIB_TCPROW_OWNER_PID& row, Process&& proc)
+	ConnectionEntry4TCP(const MIB_TCPROW_OWNER_PID& row, ProcessPtr proc)
 		: ConnectionEntryTCP(
 				row,
 				ConnectionProtocol::PROTO_TCP,
 				ProtocolFamily::INET,
-				std::move(proc))
+				proc)
 	{}
 };
 
 class ConnectionEntry4UDP : public ConnectionEntry {
 public:
-	ConnectionEntry4UDP(const MIB_UDPROW_OWNER_PID& row, Process&& proc)
+	ConnectionEntry4UDP(const MIB_UDPROW_OWNER_PID& row, ProcessPtr proc)
 		: ConnectionEntry(
 				row.dwLocalAddr,
 				row.dwLocalPort,
 				ConnectionProtocol::PROTO_UDP,
 				ProtocolFamily::INET,
-				std::move(proc))
+				proc)
 	{}
 };
 
@@ -196,13 +196,13 @@ private:
 
 class ConnectionEntry6TCP : public ConnectionEntry6, public ConnectionEntryTCP {
 public:
-	ConnectionEntry6TCP(const MIB_TCP6ROW_OWNER_PID& row, Process&& proc)
+	ConnectionEntry6TCP(const MIB_TCP6ROW_OWNER_PID& row, ProcessPtr proc)
 		: ConnectionEntry6(row.dwLocalScopeId)
 		, ConnectionEntryTCP(
 				row,
 				ConnectionProtocol::PROTO_TCP,
 				ProtocolFamily::INET6,
-				std::move(proc))
+				proc)
 		, m_remote_scope_id(row.dwRemoteScopeId)
 	{}
 
@@ -213,14 +213,14 @@ private:
 
 class ConnectionEntry6UDP : public ConnectionEntry6, public ConnectionEntry {
 public:
-	ConnectionEntry6UDP(const MIB_UDP6ROW_OWNER_PID& row, Process&& proc)
+	ConnectionEntry6UDP(const MIB_UDP6ROW_OWNER_PID& row, ProcessPtr proc)
 		: ConnectionEntry6(row.dwLocalScopeId)
 		, ConnectionEntry(
 				::makeIP6Address(row.ucLocalAddr),
 				row.dwLocalPort,
 				ConnectionProtocol::PROTO_UDP,
 				ProtocolFamily::INET6,
-				std::move(proc))
+				proc)
 	{}
 };
 

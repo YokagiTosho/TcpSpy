@@ -5,7 +5,7 @@
 #include <Windows.h>
 #include <psapi.h>
 
-
+#include <memory>
 #include <utility>
 #include <string>
 
@@ -86,6 +86,6 @@ private:
 	};
 };
 
-
+using ProcessPtr = std::shared_ptr<Process>;
 
 #endif
