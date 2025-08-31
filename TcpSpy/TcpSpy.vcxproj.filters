@@ -27,6 +27,9 @@
     <ClInclude Include="TcpSpy.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ListView.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TcpSpy.cpp">

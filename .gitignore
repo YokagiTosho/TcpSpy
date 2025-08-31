@@ -35,3 +35,10 @@ x64/
 TcpSpy/x64
 .vs/
 *.user
+
+# remove emacs' files
+*#*#*
+*~
+
+# remove precompiled resources
+*aps

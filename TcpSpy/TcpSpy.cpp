@@ -4,18 +4,24 @@
 #include "framework.h"
 #include "TcpSpy.h"
 
+#include "libTcpSpy/ConnectionsTable.hpp"
+#include "ListView.hpp"
+
 #define MAX_LOADSTRING 100
 
 // Global Variables:
 HINSTANCE hInst;                                // current instance
 WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
+std::unique_ptr<ListView> listView;
 
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
+
+void InitCommonControls();
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -25,12 +31,16 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(hPrevInstance);
     UNREFERENCED_PARAMETER(lpCmdLine);
 
+	InitCommonControls();
+
     // TODO: Place code here.
 
     // Initialize global strings
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
     LoadStringW(hInstance, IDC_TCPSPY, szWindowClass, MAX_LOADSTRING);
     MyRegisterClass(hInstance);
+
+
 
     // Perform application initialization:
     if (!InitInstance (hInstance, nCmdShow))
@@ -54,8 +64,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     return (int) msg.wParam;
 }
-
-
 
 //
 //  FUNCTION: MyRegisterClass()
@@ -105,6 +113,20 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
       return FALSE;
    }
 
+   listView = std::make_unique<ListView>(hInstance, hWnd);
+
+   listView->init_list({
+      L"Process name",
+      L"PID",
+      L"Protocol",
+      L"IP version",
+      L"Local address",
+      L"Local port",
+      L"Remote address",
+      L"Remote port",
+      L"State"
+       });
+
    ShowWindow(hWnd, nCmdShow);
    UpdateWindow(hWnd);
 
@@ -125,6 +147,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
     {
+
+    case WM_CREATE:
+
+        break;
     case WM_COMMAND:
         {
             int wmId = LOWORD(wParam);
@@ -177,4 +203,10 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     }
     return (INT_PTR)FALSE;
+}
+
+void InitCommonControls() {
+    INITCOMMONCONTROLSEX icc{};
+    icc.dwICC = ICC_LISTVIEW_CLASSES;
+    InitCommonControlsEx(&icc);
 }
