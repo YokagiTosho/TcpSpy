@@ -41,7 +41,7 @@ using IP6Address = std::array<UCHAR, IP6AddressLen>;
 
 using IPAddress = std::variant<IP4Address, IP6Address>;
 
-inline IPAddress makeIP6Address(const UCHAR *addr) {
+inline IPAddress makeIP6Address(const UCHAR* addr) {
 	IP6Address _addr{};
 	std::copy(addr, addr + IP6AddressLen, _addr.begin());
 	return _addr;
@@ -51,7 +51,8 @@ class ConnectionEntry
 {
 public:
 	ConnectionEntry()
-	{}
+	{
+	}
 
 	ConnectionEntry(
 		IPAddress local_addr,
@@ -84,9 +85,15 @@ public:
 		return Net::ConvertPortToStr(m_local_port);
 	}
 
-	const std::wstring &get_process_name() const {
+	const std::wstring& get_process_name() const {
 		return m_proc->m_name;
 	}
+
+	std::wstring pid_str() const {
+		return Utils::ConvertFrom<DWORD>(m_proc->m_pid);
+	}
+
+	std::wstring proto_str() const { return Utils::ConvertFrom<int>((int)m_proto); }
 
 	virtual ~ConnectionEntry() = default;
 protected:
@@ -117,24 +124,26 @@ protected:
 class ConnectionEntryTCP : public ConnectionEntry {
 public:
 	ConnectionEntryTCP(
-			const MIB_TCPROW_OWNER_PID& row,
-			ConnectionProtocol proto,
-			ProtocolFamily af,
-			ProcessPtr proc
-			)
+		const MIB_TCPROW_OWNER_PID& row,
+		ConnectionProtocol proto,
+		ProtocolFamily af,
+		ProcessPtr proc
+	)
 		: ConnectionEntry(row.dwLocalAddr, row.dwLocalPort, proto, af, proc)
 		, m_remote_addr(row.dwRemoteAddr), m_remote_port(ntohs(row.dwRemotePort)), m_state(row.dwState)
-	{}
+	{
+	}
 
 	ConnectionEntryTCP(
-			const MIB_TCP6ROW_OWNER_PID& row,
-			ConnectionProtocol proto,
-			ProtocolFamily af,
-			ProcessPtr proc
-			)
+		const MIB_TCP6ROW_OWNER_PID& row,
+		ConnectionProtocol proto,
+		ProtocolFamily af,
+		ProcessPtr proc
+	)
 		: ConnectionEntry(::makeIP6Address(row.ucLocalAddr), row.dwLocalPort, proto, af, proc)
 		, m_remote_addr(::makeIP6Address(row.ucRemoteAddr)), m_remote_port(ntohs(row.dwRemotePort)), m_state(row.dwState)
-	{}
+	{
+	}
 
 	IPAddress remote_addr() const { return m_remote_addr; }
 
@@ -150,6 +159,8 @@ public:
 		return Net::ConvertPortToStr(m_remote_port);
 	}
 
+	std::wstring state_str() const { return Utils::ConvertFrom<DWORD>(m_state); }
+
 	virtual ~ConnectionEntryTCP() = default;
 protected:
 	IPAddress m_remote_addr{ (DWORD)-1 };
@@ -162,30 +173,33 @@ class ConnectionEntry4TCP : public ConnectionEntryTCP {
 public:
 	ConnectionEntry4TCP(const MIB_TCPROW_OWNER_PID& row, ProcessPtr proc)
 		: ConnectionEntryTCP(
-				row,
-				ConnectionProtocol::PROTO_TCP,
-				ProtocolFamily::INET,
-				proc)
-	{}
+			row,
+			ConnectionProtocol::PROTO_TCP,
+			ProtocolFamily::INET,
+			proc)
+	{
+	}
 };
 
 class ConnectionEntry4UDP : public ConnectionEntry {
 public:
 	ConnectionEntry4UDP(const MIB_UDPROW_OWNER_PID& row, ProcessPtr proc)
 		: ConnectionEntry(
-				row.dwLocalAddr,
-				row.dwLocalPort,
-				ConnectionProtocol::PROTO_UDP,
-				ProtocolFamily::INET,
-				proc)
-	{}
+			row.dwLocalAddr,
+			row.dwLocalPort,
+			ConnectionProtocol::PROTO_UDP,
+			ProtocolFamily::INET,
+			proc)
+	{
+	}
 };
 
 class ConnectionEntry6 {
 public:
 	ConnectionEntry6(DWORD local_scope_id)
 		: m_local_scope_id(local_scope_id)
-	{}
+	{
+	}
 
 	DWORD local_scope_id() const { return m_local_scope_id; }
 
@@ -199,12 +213,13 @@ public:
 	ConnectionEntry6TCP(const MIB_TCP6ROW_OWNER_PID& row, ProcessPtr proc)
 		: ConnectionEntry6(row.dwLocalScopeId)
 		, ConnectionEntryTCP(
-				row,
-				ConnectionProtocol::PROTO_TCP,
-				ProtocolFamily::INET6,
-				proc)
+			row,
+			ConnectionProtocol::PROTO_TCP,
+			ProtocolFamily::INET6,
+			proc)
 		, m_remote_scope_id(row.dwRemoteScopeId)
-	{}
+	{
+	}
 
 	DWORD remote_scope_id() const { return m_remote_scope_id; }
 private:
@@ -216,12 +231,13 @@ public:
 	ConnectionEntry6UDP(const MIB_UDP6ROW_OWNER_PID& row, ProcessPtr proc)
 		: ConnectionEntry6(row.dwLocalScopeId)
 		, ConnectionEntry(
-				::makeIP6Address(row.ucLocalAddr),
-				row.dwLocalPort,
-				ConnectionProtocol::PROTO_UDP,
-				ProtocolFamily::INET6,
-				proc)
-	{}
+			::makeIP6Address(row.ucLocalAddr),
+			row.dwLocalPort,
+			ConnectionProtocol::PROTO_UDP,
+			ProtocolFamily::INET6,
+			proc)
+	{
+	}
 };
 
 using ConnectionEntryPtr = std::unique_ptr<ConnectionEntry>;

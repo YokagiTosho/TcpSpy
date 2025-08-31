@@ -16,7 +16,8 @@ inline static std::wstring _SockaddrToWString(LPSOCKADDR sock_addr, DWORD len) {
 	INT res = WSAAddressToStringW(sock_addr, len, NULL, buf, &buf_size);
 
 	if (res == SOCKET_ERROR) {
-		std::cerr << "`WSAAddressToStringW` failed: " << WSAGetLastError() << std::endl;
+		auto err = WSAGetLastError();
+		std::cerr << "`WSAAddressToStringW` failed: " << err << std::endl;
 		exit(1);
 	}
 
@@ -29,11 +30,11 @@ namespace Net {
 	}
 
 	inline std::wstring ConvertAddrToStr(DWORD a) {
-			sockaddr_in sin{};
-			sin.sin_family = AF_INET;
-			sin.sin_addr.s_addr = a;
+		sockaddr_in sin{};
+		sin.sin_family = AF_INET;
+		sin.sin_addr.s_addr = a;
 
-			return ::_SockaddrToWString((SOCKADDR*)&sin, sizeof(sin));
+		return ::_SockaddrToWString((SOCKADDR*)&sin, sizeof(sin));
 	}
 
 	inline std::wstring ConvertAddrToStr(const UCHAR a[]) {

@@ -20,23 +20,23 @@ public:
 
 		// Create the list-view window in report view with label editing enabled.
 		m_lv = CreateWindow(
-							WC_LISTVIEW,
-							L"",
-							m_style,
-							0,0,
-							rcClient.right - rcClient.left,
-							rcClient.bottom - rcClient.top,
-							m_parent,
-							NULL,
-							NULL,
-							NULL);
+			WC_LISTVIEW,
+			L"",
+			m_style,
+			0, 0,
+			rcClient.right - rcClient.left,
+			rcClient.bottom - rcClient.top,
+			m_parent,
+			NULL,
+			NULL,
+			NULL);
 
 		ListView_SetExtendedListViewStyle(m_lv, LVS_EX_AUTOSIZECOLUMNS | LVS_EX_FULLROWSELECT);
 	};
 
-	ListView(const ListView &lv) = delete;
+	ListView(const ListView& lv) = delete;
 
-	ListView(ListView &&lv) noexcept 
+	ListView(ListView&& lv) noexcept
 		: m_lv(lv.m_lv), m_parent(lv.m_parent), m_style(lv.m_style), m_inst(lv.m_inst)
 	{
 		lv.m_inst = NULL;
@@ -46,12 +46,12 @@ public:
 		lv.m_style = 0;
 	}
 
-	void init_list(const std::vector<std::wstring> &columns) {
+	void init_list(const std::vector<std::wstring>& columns) {
 		if (columns.empty()) {
 			throw std::runtime_error("Empty columns passed");
 		}
 
-		LV_COLUMN lvColumn {};
+		LV_COLUMN lvColumn{};
 
 		lvColumn.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
 		lvColumn.fmt = LVCFMT_LEFT;
@@ -98,18 +98,18 @@ public:
 		GetClientRect(m_parent, &rc);
 
 		MoveWindow(m_lv,
-				   rc.left,
-				   rc.top,
-				   rc.right - rc.left,
-				   rc.bottom - rc.top,
-				   TRUE
-				   );
+			rc.left,
+			rc.top,
+			rc.right - rc.left,
+			rc.bottom - rc.top,
+			TRUE
+		);
 	}
 private:
 	HINSTANCE m_inst;
 	HWND m_parent;
 	HWND m_lv;
-	DWORD m_style{WS_TABSTOP | WS_CHILD | WS_BORDER | WS_VISIBLE | LVS_AUTOARRANGE | LVS_REPORT};
+	DWORD m_style{ WS_TABSTOP | WS_CHILD | WS_BORDER | WS_VISIBLE | LVS_AUTOARRANGE | LVS_REPORT };
 };
 
 #endif
