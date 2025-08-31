@@ -11,6 +11,8 @@
 
 class ListView {
 public:
+	using pointer = std::unique_ptr<ListView>;
+
 	ListView(HINSTANCE inst, HWND parent)
 		: m_inst(inst), m_parent(parent)
 	{
