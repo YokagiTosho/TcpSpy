@@ -4,7 +4,7 @@
 #include "framework.h"
 #include "TcpSpy.h"
 
-#include "libTcpSpy/ConnectionsTable.hpp"
+#include "libTcpSpy/ConnectionTableRegistry.hpp"
 #include "ListView.hpp"
 
 #define MAX_LOADSTRING 100
@@ -15,6 +15,7 @@ WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
 
 ListView::pointer listView;
+ConnectionsTableRegistry connectionsRegistry;
 
 // Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -114,7 +115,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
       return FALSE;
    }
 
-   listView = std::make_unique<ListView>(hInstance, hWnd);
+   listView = std::make_unique<ListView>(hWnd);
 
    listView->init_list({
       L"Process name",
@@ -127,6 +128,10 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
       L"Remote port",
       L"State"
        });
+
+   connectionsRegistry.update();
+
+   listView->insert_items(connectionsRegistry.size());
 
    ShowWindow(hWnd, nCmdShow);
    UpdateWindow(hWnd);
@@ -150,6 +155,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
 
     case WM_CREATE:
+
         break;
     case WM_COMMAND:
         {

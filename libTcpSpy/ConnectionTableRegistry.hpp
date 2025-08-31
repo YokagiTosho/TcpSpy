@@ -1,7 +1,6 @@
-#ifndef CONNECTIONS_TABLE_REGISRY_HPP
-#define CONNECTIONS_TABLE_REGISRY_HPP
+#ifndef CONNECTIONS_TABLE_REGISTRY_HPP
+#define CONNECTIONS_TABLE_REGISTRY_HPP
 
-#include "ConnectionEntry.hpp"
 #include "ConnectionsTable.hpp"
 
 #include <unordered_set>
@@ -12,32 +11,9 @@
 enum class ConnectionFilter {
 };
 
-#if 0
-template<typename K, typename V>
-class Cache {
+class ConnectionsTableRegistry {
 public:
-    void set(const K &key, V val) {
-        m_cache[key] = val;
-    }
-    
-    const std::optional<V> get(const K &key) {
-        if (auto it = m_cache.find(key); it != m_cache.end()) {
-            return {it->second};
-        }
-        return {};
-    }
-
-    bool exists(const K &key) {
-        return m_cache.find(key) != m_cache.end();
-    }
-private:
-    std::unordered_map<K, V> m_cache{};
-};
-#endif
-
-class ConnectionsableRegistry {
-public:
-    ConnectionsableRegistry()
+    ConnectionsTableRegistry()
     { }
 
     void update() {
@@ -47,6 +23,9 @@ public:
         m_udp_table6.update();
 
         m_updated = false;
+
+        // just to update m_rows, result is not needed
+        get();
     }
 
     const ConnectionEntryPtrs &get() {
@@ -62,12 +41,16 @@ public:
         return m_rows;
     }
 
+    size_t size() const {
+        return m_rows.size();
+    }
+
 private:
     template<typename T>
     void add_rows(T &table) {
         for (const auto& row : table) {
             DWORD proc_pid = row.dwOwningPid;
-            std::shared_ptr<Process> proc_ptr;
+            ProcessPtr proc_ptr;
 
             if (auto it = m_proc_cache.find(proc_pid); it != m_proc_cache.end()) {
                 // proc is in cache
@@ -80,7 +63,7 @@ private:
                 m_proc_cache[proc_pid] = proc_ptr;
             }
             
-            m_rows.push_back(new typename T::ConnectionEntryT(row, proc_ptr);
+            m_rows.push_back(std::make_unique<typename T::ConnectionEntryT>(row, proc_ptr));
         }
     }
 
@@ -93,7 +76,7 @@ private:
 
     ConnectionEntryPtrs m_rows;
 
-    std::unordered_map<DWORD, std::shared_ptr<Process>> m_proc_cache{};
+    std::unordered_map<DWORD, ProcessPtr> m_proc_cache{};
 
     bool m_updated{ false };
 };

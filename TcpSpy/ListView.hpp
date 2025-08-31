@@ -5,16 +5,14 @@
 #include <vector>
 #include <stdexcept>
 
-
-
 #include "framework.h"
 
 class ListView {
 public:
 	using pointer = std::unique_ptr<ListView>;
 
-	ListView(HINSTANCE inst, HWND parent)
-		: m_inst(inst), m_parent(parent)
+	ListView(HWND parent)
+		: m_parent(parent)
 	{
 		RECT rcClient;
 
@@ -30,7 +28,7 @@ public:
 							rcClient.bottom - rcClient.top,
 							m_parent,
 							NULL,
-							m_inst,
+							NULL,
 							NULL);
 
 		ListView_SetExtendedListViewStyle(m_lv, LVS_EX_AUTOSIZECOLUMNS | LVS_EX_FULLROWSELECT);
@@ -71,6 +69,8 @@ public:
 	}
 
 	void insert_items(int items_size) {
+		if (!items_size) return;
+
 		ListView_DeleteAllItems(m_lv);
 
 		LVITEM item;

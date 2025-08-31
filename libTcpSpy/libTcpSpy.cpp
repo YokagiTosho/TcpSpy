@@ -1,9 +1,9 @@
 #include <iostream>
 #include <vector>
 #include <memory>
+
 #include "ConnectionEntry.hpp"
 #include "ConnectionsTable.hpp"
-
 
 void test_ConnectionsTable();
 

@@ -148,11 +148,6 @@ private:
     DWORD m_size { sizeof(T) };
 };
 
-using TcpTable4 = ConnectionsTable<MIB_TCPTABLE_OWNER_PID, MIB_TCPROW_OWNER_PID>;
-using TcpTable6 = ConnectionsTable<MIB_TCP6TABLE_OWNER_PID, MIB_TCP6ROW_OWNER_PID>;
-using UdpTable4 = ConnectionsTable<MIB_UDPTABLE_OWNER_PID, MIB_UDPROW_OWNER_PID>;
-using UdpTable6 = ConnectionsTable<MIB_UDP6TABLE_OWNER_PID, MIB_UDP6ROW_OWNER_PID>;
-
 template<>
 DWORD ConnectionsTable<MIB_TCPTABLE_OWNER_PID, MIB_TCPROW_OWNER_PID>::update() {
     DWORD dwRes = _update_table<GetExtendedTcpTablePtr, TCP_TABLE_CLASS>
@@ -196,3 +191,8 @@ DWORD ConnectionsTable<MIB_UDP6TABLE_OWNER_PID, MIB_UDP6ROW_OWNER_PID>::update()
 
     return dwRes;
 }
+
+using TcpTable4 = ConnectionsTable<MIB_TCPTABLE_OWNER_PID, MIB_TCPROW_OWNER_PID>;
+using TcpTable6 = ConnectionsTable<MIB_TCP6TABLE_OWNER_PID, MIB_TCP6ROW_OWNER_PID>;
+using UdpTable4 = ConnectionsTable<MIB_UDPTABLE_OWNER_PID, MIB_UDPROW_OWNER_PID>;
+using UdpTable6 = ConnectionsTable<MIB_UDP6TABLE_OWNER_PID, MIB_UDP6ROW_OWNER_PID>;
