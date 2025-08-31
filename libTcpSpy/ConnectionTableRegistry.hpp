@@ -12,6 +12,7 @@
 enum class ConnectionFilter {
 };
 
+#if 0
 template<typename K, typename V>
 class Cache {
 public:
@@ -32,6 +33,7 @@ public:
 private:
     std::unordered_map<K, V> m_cache{};
 };
+#endif
 
 class ConnectionsableRegistry {
 public:
@@ -64,11 +66,21 @@ private:
     template<typename T>
     void add_rows(ConnectionEntryPtrs &rows, T &table) {
         for (const auto& row : table) {
-            std::shared_ptr<Process> proc = std::make_shared<Process>(row.dwOwningPid);
+            DWORD proc_pid = row.dwOwningPid;
+            std::shared_ptr<Process> proc_ptr;
 
+            if (m_proc_cache.find(proc_pid) != m_proc_cache.end()) {
+                // proc is in cache
+                proc_ptr = m_proc_cache[proc_pid];
+                
+            } else {
+                proc_ptr = std::make_shared<Process>(row.dwOwningPid);
+                proc_ptr->open();
+
+                m_proc_cache[proc_pid] = proc_ptr;
+            }
             
-
-            m_rows.push_back(new T::ConnectionEntryT(row, Process(row.dwOwningPid)));
+            m_rows.push_back(new typename T::ConnectionEntryT(row, proc_ptr);
         }
     }
 
@@ -80,7 +92,9 @@ private:
     std::unordered_set<int> m_filters;
 
     ConnectionEntryPtrs m_rows;
-    Cache<DWORD, std::shared_ptr<Process>> m_proc_cache;
+
+    std::unordered_map<DWORD, std::shared_ptr<Process>> m_proc_cache{};
+
     bool m_updated{ false };
 };
 
