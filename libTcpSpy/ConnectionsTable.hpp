@@ -88,7 +88,7 @@ public:
         ct.m_size = sizeof(T);
     }
 
-    DWORD update_table();
+    DWORD update();
 
     ~ConnectionsTable() { free_table(); }
 

@@ -35,7 +35,7 @@ template<typename T>
 T create_table() {
     T table{};
 
-    table.update_table();
+    table.update();
 
     return table;
 }

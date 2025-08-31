@@ -224,4 +224,7 @@ public:
 	{}
 };
 
+using ConnectionEntryPtr = std::unique_ptr<ConnectionEntry>;
+using ConnectionEntryPtrs = std::vector<ConnectionEntryPtr>;
+
 #endif
