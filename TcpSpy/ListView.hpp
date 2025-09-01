@@ -6,6 +6,7 @@
 #include <stdexcept>
 
 #include "framework.h"
+#include "libTcpSpy/ConnectionTableRegistry.hpp"
 
 class ListView {
 public:
@@ -32,20 +33,30 @@ public:
 			NULL);
 
 		ListView_SetExtendedListViewStyle(m_lv, LVS_EX_AUTOSIZECOLUMNS | LVS_EX_FULLROWSELECT);
+
+		init_image_list();
 	};
 
 	ListView(const ListView& lv) = delete;
 
 	ListView(ListView&& lv) noexcept
-		: m_lv(lv.m_lv), m_parent(lv.m_parent), m_style(lv.m_style), m_inst(lv.m_inst)
+		: m_lv(lv.m_lv), m_parent(lv.m_parent)
+		, m_style(lv.m_style), m_inst(lv.m_inst)
+		, m_image_list(lv.m_image_list)
 	{
 		lv.m_inst = NULL;
 		lv.m_parent = NULL;
 		lv.m_lv = NULL;
+		lv.m_image_list = NULL;
 
 		lv.m_style = 0;
 	}
 
+	~ListView() {
+		// i think destroying handles is not neccessary, because lifetime of listview is as long as main program's lifetime
+	}
+
+	// initializes imagelist's columns, their width, etc...
 	void init_list(const std::vector<std::wstring>& columns) {
 		if (columns.empty()) {
 			throw std::runtime_error("Empty columns passed");
@@ -68,10 +79,11 @@ public:
 		}
 	}
 
-	void insert_items(int items_size) {
-		if (!items_size) return;
+	void insert_items(ConnectionsTableRegistry &reg) {
+		if (!reg.size()) return;
 
 		ListView_DeleteAllItems(m_lv);
+		ImageList_RemoveAll(m_image_list);
 
 		LVITEM item;
 		ZeroMemory(&item, sizeof(item));
@@ -82,9 +94,19 @@ public:
 		item.stateMask = 0;
 		item.iSubItem = 0;
 
-		for (int i = 0; i < items_size; i++) {
+		for (int i = 0; i < reg.size(); i++) {
+			auto &row = reg.get()[i];
+			if (row->icon() == nullptr) {
+				HICON default_icon = LoadIcon(NULL, MAKEINTRESOURCE(IDI_APPLICATION));
+				ImageList_AddIcon(m_image_list, default_icon);
+				DestroyIcon(default_icon);
+			}
+			else {
+				ImageList_AddIcon(m_image_list, row->icon());
+			}
+
 			item.iItem = i;
-			//item.iImage = i;
+			item.iImage = i;
 
 			if (ListView_InsertItem(m_lv, &item) == -1) {
 				return;
@@ -106,9 +128,19 @@ public:
 		);
 	}
 private:
+	void init_image_list() {
+		m_image_list = ImageList_Create(
+			GetSystemMetrics(SM_CXSMICON),
+			GetSystemMetrics(SM_CYSMICON),
+			ILC_COLOR16, 1, 1);
+
+		ListView_SetImageList(m_lv, m_image_list, LVSIL_SMALL);
+	}
+
 	HINSTANCE m_inst;
 	HWND m_parent;
 	HWND m_lv;
+	HIMAGELIST m_image_list;
 	DWORD m_style{ WS_TABSTOP | WS_CHILD | WS_BORDER | WS_VISIBLE | LVS_AUTOARRANGE | LVS_REPORT };
 };
 

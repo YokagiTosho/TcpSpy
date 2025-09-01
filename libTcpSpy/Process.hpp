@@ -20,15 +20,24 @@ struct Process {
 	Process(const Process& p) = delete;
 
 	Process(Process&& p) noexcept
-		: m_icon(p.m_icon), m_path(std::move(p.m_path)), m_pid(p.m_pid)
+		: m_icon(p.m_icon), m_path(std::move(p.m_path)), m_name(std::move(p.m_name)), m_pid(p.m_pid)
 	{
+		p.m_icon = nullptr;
+		p.m_pid = (DWORD)-1;
+	}
 
+	~Process() {
+		if (m_icon) {
+			DestroyIcon(m_icon);
+			m_icon = nullptr;
+		}
 	}
 
 	bool open() {
 		HANDLE hProc = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, m_pid);
 
 		if (hProc == NULL) {
+			// failed to open process, could be: 1) not enough privileges, 2) opened process is very kernel-related and is not required for regular user to see
 			HICON icon = LoadIcon(NULL, MAKEINTRESOURCE(IDI_APPLICATION));
 			return false;
 		}
@@ -62,10 +71,10 @@ private:
 		return std::wstring(wProcName);
 	}
 
-	HICON get_proc_icon(std::wstring lpszFile) {
+	HICON get_proc_icon(std::wstring filepath) {
 		HICON icon = NULL;
 
-		UINT res = ExtractIconEx(lpszFile.c_str(), 0, &icon, NULL, 1);
+		UINT res = ExtractIconEx(filepath.c_str(), 0, &icon, NULL, 1);
 
 		if (res == UINT_MAX) {
 			icon = LoadIcon(NULL, MAKEINTRESOURCE(IDI_APPLICATION));

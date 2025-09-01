@@ -105,6 +105,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 		return FALSE;
 	}
 
+	// init windows that depend on main window, initialize them. (Maybe should be moved to WM_CREATE in WndProc)
 	listView = std::make_unique<ListView>(hWnd);
 
 	listView->init_list({
@@ -121,7 +122,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
 	connectionsRegistry.update();
 
-	listView->insert_items(connectionsRegistry.size());
+	listView->insert_items(connectionsRegistry);
 
 	ShowWindow(hWnd, nCmdShow);
 	UpdateWindow(hWnd);

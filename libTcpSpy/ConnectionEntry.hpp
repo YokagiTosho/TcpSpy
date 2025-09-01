@@ -95,6 +95,8 @@ public:
 
 	std::wstring proto_str() const { return Utils::ConvertFrom<int>((int)m_proto); }
 
+	HICON icon() const { return m_proc->m_icon; }
+
 	virtual ~ConnectionEntry() = default;
 protected:
 	const std::wstring _get_addr_str(IPAddress addr) const {
