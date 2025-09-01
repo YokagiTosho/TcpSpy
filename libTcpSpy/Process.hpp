@@ -25,12 +25,12 @@ struct Process {
 
 	}
 
-	void open() {
+	bool open() {
 		HANDLE hProc = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, m_pid);
 
 		if (hProc == NULL) {
 			HICON icon = LoadIcon(NULL, MAKEINTRESOURCE(IDI_APPLICATION));
-			return;
+			return false;
 		}
 
 		m_path = get_proc_path(hProc);
@@ -40,6 +40,8 @@ struct Process {
 		m_icon = get_proc_icon(m_path);
 
 		CloseHandle(hProc);
+
+		return true;
 	}
 
 	DWORD m_pid{ (DWORD)-1 };

@@ -159,7 +159,23 @@ public:
 		return Net::ConvertPortToStr(m_remote_port);
 	}
 
-	std::wstring state_str() const { return Utils::ConvertFrom<DWORD>(m_state); }
+	std::wstring state_str() const {
+		switch (m_state) {
+		case MIB_TCP_STATE_CLOSED:     return L"CLOSED";
+		case MIB_TCP_STATE_LISTEN:     return L"LISTEN";
+		case MIB_TCP_STATE_SYN_SENT:   return L"SYN_SENT";
+		case MIB_TCP_STATE_SYN_RCVD:   return L"SYN_RCVD";
+		case MIB_TCP_STATE_ESTAB:      return L"ESTAB";
+		case MIB_TCP_STATE_FIN_WAIT1:  return L"FIN_WAIT1";
+		case MIB_TCP_STATE_FIN_WAIT2:  return L"FIN_WAIT2";
+		case MIB_TCP_STATE_CLOSE_WAIT: return L"CLOSE_WAIT";
+		case MIB_TCP_STATE_CLOSING:    return L"CLOSING";
+		case MIB_TCP_STATE_LAST_ACK:   return L"LAST_ACK";
+		case MIB_TCP_STATE_TIME_WAIT:  return L"TIME_WAIT";
+		case MIB_TCP_STATE_DELETE_TCB: return L"DELETE_TCB";
+		}
+		return L"";
+	}
 
 	virtual ~ConnectionEntryTCP() = default;
 protected:

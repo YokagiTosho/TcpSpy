@@ -1,15 +1,13 @@
-// TcpSpy.cpp : Defines the entry point for the application.
-//
-
 #include "framework.h"
 #include "TcpSpy.h"
+
+#include <strsafe.h>
 
 #include "libTcpSpy/ConnectionTableRegistry.hpp"
 #include "ListView.hpp"
 
 #define MAX_LOADSTRING 100
 
-// Global Variables:
 HINSTANCE hInst;                                // current instance
 WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
@@ -17,7 +15,6 @@ WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
 ListView::pointer listView;
 ConnectionsTableRegistry connectionsRegistry;
 
-// Forward declarations of functions included in this code module:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
@@ -38,17 +35,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	InitWSA();
 	InitCommonControls();
 	
-
-	// TODO: Place code here.
-
-	// Initialize global strings
 	LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
 	LoadStringW(hInstance, IDC_TCPSPY, szWindowClass, MAX_LOADSTRING);
 	MyRegisterClass(hInstance);
 
-
-
-	// Perform application initialization:
 	if (!InitInstance(hInstance, nCmdShow))
 	{
 		return FALSE;
@@ -58,7 +48,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	MSG msg;
 
-	// Main message loop:
 	while (GetMessage(&msg, nullptr, 0, 0))
 	{
 		if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
@@ -73,11 +62,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	return (int)msg.wParam;
 }
 
-//
-//  FUNCTION: MyRegisterClass()
-//
-//  PURPOSE: Registers the window class.
-//
 ATOM MyRegisterClass(HINSTANCE hInstance)
 {
 	WNDCLASSEXW wcex;
@@ -166,7 +150,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_COMMAND:
 	{
 		int wmId = LOWORD(wParam);
-		// Parse the menu selections:
 		switch (wmId)
 		{
 		case IDM_ABOUT:
@@ -187,7 +170,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hWnd, &ps);
-		// TODO: Add any drawing code that uses hdc here...
 		EndPaint(hWnd, &ps);
 	}
 	break;
@@ -203,7 +185,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	return 0;
 }
 
-// Message handler for about box.
 INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	UNREFERENCED_PARAMETER(lParam);
@@ -229,11 +210,7 @@ void InitCommonControls() {
 	InitCommonControlsEx(&icc);
 }
 
-
-
 void ProcessListViewEntry(LPARAM lParam) {
-	// 0 - proc name, 1 - pid, 2 - loc addr, 3 - loc port, 4 - rem addr, 5 - rem port
-	// todo make it enum
 #define PROC_NAME 0
 #define PID       1
 #define PROTOCOL  2
@@ -243,41 +220,35 @@ void ProcessListViewEntry(LPARAM lParam) {
 #define REM_ADDR  6
 #define REM_PORT  7
 #define STATE     8
-	NMLVDISPINFO* plvdi;
-	WCHAR buff[512];
-	ZeroMemory(buff, sizeof(buff));
+	NMLVDISPINFO* plvdi = (NMLVDISPINFO*)lParam;
 
-	plvdi = (NMLVDISPINFO*)lParam;
-
-	/* It is very strange that microsoft documentation suggests to point in NMLVDISPINFO to stack memory "buff".
-	But it works, maybe because its accessed right after WndProc and not yet corrupted to that moment */
-
-	//const ConnectionRowInfo& row = g_connectionsInfo[plvdi->item.iItem];
 	auto &row = connectionsRegistry.get()[plvdi->item.iItem];
-#define BUF_LEN 512
+
+	constexpr auto BUF_LEN = 512;
 	static WCHAR buf[BUF_LEN];
+	std::wstring tmp;
 
 	switch (plvdi->item.iSubItem)
 	{
 	case PROC_NAME:
-		lstrcpynW(buf, (LPWSTR)row->get_process_name().c_str(), BUF_LEN);
+		tmp = row->get_process_name().c_str();
 		break;
 	case PID:
-		lstrcpynW(buf, (LPWSTR)row->pid_str().c_str(), BUF_LEN);
+		tmp = row->pid_str().c_str();
 		break;
 	case PROTOCOL:
 		switch (row->protocol()) {
 		case ConnectionProtocol::PROTO_TCP:
 			plvdi->item.pszText = (LPWSTR)L"TCP";
-			return;
+			break;
 		case ConnectionProtocol::PROTO_UDP:
 			plvdi->item.pszText = (LPWSTR)L"UDP";
-			return;
+			break;
 		default:
 			assert(false);
 			break;
 		}
-		break;
+		return;
 	case IPVERSION:
 		switch (row->address_family()) {
 		case ProtocolFamily::INET:
@@ -288,16 +259,15 @@ void ProcessListViewEntry(LPARAM lParam) {
 			break;
 		}
 		return; // return so plvdi->item.pszText is not assigned at the end of function
-		break;
 	case LOC_ADDR:
-		lstrcpynW(buf, (LPWSTR)row->local_addr_str().c_str(), BUF_LEN);
+		tmp = row->local_addr_str().c_str();
 		break;
 	case LOC_PORT:
-		lstrcpynW(buf, (LPWSTR)row->local_port_str().c_str(), BUF_LEN);
+		tmp = row->local_port_str().c_str();
 		break;
 	case REM_ADDR:
 		if (auto p = dynamic_cast<ConnectionEntryTCP*>(row.get())) {
-			lstrcpynW(buf, (LPWSTR)p->remote_addr_str().c_str(), BUF_LEN);
+			tmp = p->remote_addr_str().c_str();
 		}
 		else {
 			return;
@@ -305,7 +275,7 @@ void ProcessListViewEntry(LPARAM lParam) {
 		break;
 	case REM_PORT:
 		if (auto p = dynamic_cast<ConnectionEntryTCP*>(row.get())) {
-			lstrcpynW(buf, (LPWSTR)p->remote_port_str().c_str(), BUF_LEN);
+			tmp = p->remote_port_str().c_str();
 		}
 		else {
 			return;
@@ -313,7 +283,7 @@ void ProcessListViewEntry(LPARAM lParam) {
 		break;
 	case STATE:
 		if (auto p = dynamic_cast<ConnectionEntryTCP*>(row.get())) {
-			lstrcpynW(buf, (LPWSTR)p->state_str().c_str(), BUF_LEN);
+			tmp = p->state_str().c_str();
 		}
 		else {
 			return;
@@ -322,6 +292,12 @@ void ProcessListViewEntry(LPARAM lParam) {
 	default:
 		return;
 	}
+	HRESULT res = StringCchCopyW(buf, BUF_LEN, (LPWSTR)tmp.c_str());
+
+	if (res == STRSAFE_E_INVALID_PARAMETER) {
+		throw std::invalid_argument("The value in cchDest is either 0 or larger than STRSAFE_MAX_CCH");
+	}
+
 	plvdi->item.pszText = buf;
 }
 

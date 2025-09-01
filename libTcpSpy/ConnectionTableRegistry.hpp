@@ -60,7 +60,9 @@ private:
 			}
 			else {
 				proc_ptr = std::make_shared<Process>(row.dwOwningPid);
-				proc_ptr->open();
+				if (!proc_ptr->open()) {
+					continue; // do not store processes and thus ConnectionEntry
+				}
 
 				m_proc_cache[proc_pid] = proc_ptr;
 			}
