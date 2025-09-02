@@ -35,14 +35,14 @@ INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
 enum ListViewColumns {
 	PROC_NAME,
-	PID		 ,
-	PROTOCOL ,
+	PID,
+	PROTOCOL,
 	IPVERSION,
-	LOC_ADDR ,
-	LOC_PORT ,
-	REM_ADDR ,
-	REM_PORT ,
-	STATE	 ,
+	LOC_ADDR,
+	LOC_PORT,
+	REM_ADDR,
+	REM_PORT,
+	STATE,
 };
 
 void InitCommonControls();
@@ -324,31 +324,27 @@ void ProcessListViewEntry(LPARAM lParam) {
 
 void SortColumn(LPARAM lParam) {
 	LPNMLISTVIEW pnmv = (LPNMLISTVIEW)lParam;
-
-	switch (pnmv->iSubItem) {
-	case ListViewColumns::PROC_NAME:
-		connectionsRegistry.sort(SortBy::ProcessName);
-		break;
-	case ListViewColumns::PID:
-		connectionsRegistry.sort(SortBy::PID);
-		break;
-	case ListViewColumns::PROTOCOL:
-		break;
-	case ListViewColumns::IPVERSION:
-		break;
-	case ListViewColumns::LOC_ADDR:
-		break;
-	case ListViewColumns::LOC_PORT:
-		break;
-	case ListViewColumns::REM_ADDR:
-		break;
-	case ListViewColumns::REM_PORT:
-		break;
-	case ListViewColumns::STATE:
-		break;
+	if (pnmv->iSubItem < 0 || pnmv->iSubItem > ListViewColumns::STATE) {
+		// out of bounds
+		return;
 	}
 
+	static DWORD prev_clicked_column = -1;
+	static bool asc = true;
+
+	if (prev_clicked_column == pnmv->iSubItem) {
+		asc = !asc;
+	}
+	else {
+		asc = true;
+	}
+
+	connectionsRegistry.sort((SortBy)pnmv->iSubItem, asc);
+
+
 	listView->insert_items(connectionsRegistry);
+
+	prev_clicked_column = pnmv->iSubItem;
 }
 
 void HandleWM_NOTIFY(LPARAM lParam) {
