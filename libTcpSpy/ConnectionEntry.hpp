@@ -97,6 +97,8 @@ public:
 
 	HICON icon() const { return m_proc->m_icon; }
 
+	DWORD pid() const { return m_proc->m_pid; }
+
 	virtual ~ConnectionEntry() = default;
 protected:
 	const std::wstring _get_addr_str(IPAddress addr) const {

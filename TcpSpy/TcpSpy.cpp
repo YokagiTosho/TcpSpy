@@ -1,6 +1,7 @@
 #include "framework.h"
 #include "TcpSpy.h"
 
+#include <algorithm>
 #include <strsafe.h>
 
 #include "libTcpSpy/ConnectionTableRegistry.hpp"
@@ -19,6 +20,30 @@ ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
+
+#if 0
+#define PROC_NAME 0
+#define PID       1
+#define PROTOCOL  2
+#define IPVERSION 3
+#define LOC_ADDR  4
+#define LOC_PORT  5
+#define REM_ADDR  6
+#define REM_PORT  7
+#define STATE     8
+#endif
+
+enum ListViewColumns {
+	PROC_NAME,
+	PID		 ,
+	PROTOCOL ,
+	IPVERSION,
+	LOC_ADDR ,
+	LOC_PORT ,
+	REM_ADDR ,
+	REM_PORT ,
+	STATE	 ,
+};
 
 void InitCommonControls();
 void InitWSA();
@@ -146,7 +171,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 
 	case WM_CREATE:
-
 		break;
 	case WM_COMMAND:
 	{
@@ -155,6 +179,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 		case IDM_ABOUT:
 			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+			break;
+		case ID_VIEW_REFRESH:
+			connectionsRegistry.update();
+			listView->insert_items(connectionsRegistry);
 			break;
 		case IDM_EXIT:
 			DestroyWindow(hWnd);
@@ -212,15 +240,7 @@ void InitCommonControls() {
 }
 
 void ProcessListViewEntry(LPARAM lParam) {
-#define PROC_NAME 0
-#define PID       1
-#define PROTOCOL  2
-#define IPVERSION 3
-#define LOC_ADDR  4
-#define LOC_PORT  5
-#define REM_ADDR  6
-#define REM_PORT  7
-#define STATE     8
+
 	NMLVDISPINFO* plvdi = (NMLVDISPINFO*)lParam;
 
 	auto &row = connectionsRegistry.get()[plvdi->item.iItem];
@@ -231,13 +251,13 @@ void ProcessListViewEntry(LPARAM lParam) {
 
 	switch (plvdi->item.iSubItem)
 	{
-	case PROC_NAME:
+	case ListViewColumns::PROC_NAME:
 		tmp = row->get_process_name().c_str();
 		break;
-	case PID:
+	case ListViewColumns::PID:
 		tmp = row->pid_str().c_str();
 		break;
-	case PROTOCOL:
+	case ListViewColumns::PROTOCOL:
 		switch (row->protocol()) {
 		case ConnectionProtocol::PROTO_TCP:
 			plvdi->item.pszText = (LPWSTR)L"TCP";
@@ -250,7 +270,7 @@ void ProcessListViewEntry(LPARAM lParam) {
 			break;
 		}
 		return;
-	case IPVERSION:
+	case ListViewColumns::IPVERSION:
 		switch (row->address_family()) {
 		case ProtocolFamily::INET:
 			plvdi->item.pszText = (LPWSTR)L"IPv4";
@@ -260,13 +280,13 @@ void ProcessListViewEntry(LPARAM lParam) {
 			break;
 		}
 		return; // return so plvdi->item.pszText is not assigned at the end of function
-	case LOC_ADDR:
+	case ListViewColumns::LOC_ADDR:
 		tmp = row->local_addr_str().c_str();
 		break;
-	case LOC_PORT:
+	case ListViewColumns::LOC_PORT:
 		tmp = row->local_port_str().c_str();
 		break;
-	case REM_ADDR:
+	case ListViewColumns::REM_ADDR:
 		if (auto p = dynamic_cast<ConnectionEntryTCP*>(row.get())) {
 			tmp = p->remote_addr_str().c_str();
 		}
@@ -274,7 +294,7 @@ void ProcessListViewEntry(LPARAM lParam) {
 			return;
 		}
 		break;
-	case REM_PORT:
+	case ListViewColumns::REM_PORT:
 		if (auto p = dynamic_cast<ConnectionEntryTCP*>(row.get())) {
 			tmp = p->remote_port_str().c_str();
 		}
@@ -282,7 +302,7 @@ void ProcessListViewEntry(LPARAM lParam) {
 			return;
 		}
 		break;
-	case STATE:
+	case ListViewColumns::STATE:
 		if (auto p = dynamic_cast<ConnectionEntryTCP*>(row.get())) {
 			tmp = p->state_str().c_str();
 		}
@@ -302,11 +322,43 @@ void ProcessListViewEntry(LPARAM lParam) {
 	plvdi->item.pszText = buf;
 }
 
+void SortColumn(LPARAM lParam) {
+	LPNMLISTVIEW pnmv = (LPNMLISTVIEW)lParam;
+
+	switch (pnmv->iSubItem) {
+	case ListViewColumns::PROC_NAME:
+		connectionsRegistry.sort(SortBy::ProcessName);
+		break;
+	case ListViewColumns::PID:
+		connectionsRegistry.sort(SortBy::PID);
+		break;
+	case ListViewColumns::PROTOCOL:
+		break;
+	case ListViewColumns::IPVERSION:
+		break;
+	case ListViewColumns::LOC_ADDR:
+		break;
+	case ListViewColumns::LOC_PORT:
+		break;
+	case ListViewColumns::REM_ADDR:
+		break;
+	case ListViewColumns::REM_PORT:
+		break;
+	case ListViewColumns::STATE:
+		break;
+	}
+
+	listView->insert_items(connectionsRegistry);
+}
+
 void HandleWM_NOTIFY(LPARAM lParam) {
 	switch (((NMHDR*)lParam)->code)
 	{
 	case LVN_GETDISPINFO:
 		ProcessListViewEntry(lParam);
+		break;
+	case LVN_COLUMNCLICK:
+		SortColumn(lParam);
 		break;
 	}
 }
