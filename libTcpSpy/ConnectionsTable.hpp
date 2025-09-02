@@ -157,33 +157,33 @@ private:
 };
 
 template<>
-template<typename T>
-DWORD ConnectionsTable<MIB_TCPTABLE_OWNER_PID, MIB_TCPROW_OWNER_PID>::update(T tableClass) {
-	DWORD dwRes = _update_table(GetExtendedTcpTable, TCP_TABLE_OWNER_PID_ALL);
+template<typename TableClass>
+DWORD ConnectionsTable<MIB_TCPTABLE_OWNER_PID, MIB_TCPROW_OWNER_PID>::update(TableClass tableClass) {
+	DWORD dwRes = _update_table(GetExtendedTcpTable, tableClass);
 
 	return dwRes;
 }
 
 template<>
-template<typename T>
-DWORD ConnectionsTable<MIB_TCP6TABLE_OWNER_PID, MIB_TCP6ROW_OWNER_PID>::update(T tableClass) {
-	DWORD dwRes = _update_table(GetExtendedTcpTable, TCP_TABLE_OWNER_PID_ALL, AF_INET6);
+template<typename TableClass>
+DWORD ConnectionsTable<MIB_TCP6TABLE_OWNER_PID, MIB_TCP6ROW_OWNER_PID>::update(TableClass tableClass) {
+	DWORD dwRes = _update_table(GetExtendedTcpTable, tableClass, AF_INET6);
 
 	return dwRes;
 }
 
 template<>
-template<typename T>
-DWORD ConnectionsTable<MIB_UDPTABLE_OWNER_PID, MIB_UDPROW_OWNER_PID>::update(T tableClass) {
-	DWORD dwRes = _update_table(GetExtendedUdpTable, UDP_TABLE_OWNER_PID);
+template<typename TableClass>
+DWORD ConnectionsTable<MIB_UDPTABLE_OWNER_PID, MIB_UDPROW_OWNER_PID>::update(TableClass tableClass) {
+	DWORD dwRes = _update_table(GetExtendedUdpTable, tableClass);
 
 	return dwRes;
 }
 
 template<>
-template<typename T>
-DWORD ConnectionsTable<MIB_UDP6TABLE_OWNER_PID, MIB_UDP6ROW_OWNER_PID>::update(T tableClass) {
-	DWORD dwRes = _update_table(GetExtendedUdpTable, UDP_TABLE_OWNER_PID, AF_INET6);
+template<typename TableClass>
+DWORD ConnectionsTable<MIB_UDP6TABLE_OWNER_PID, MIB_UDP6ROW_OWNER_PID>::update(TableClass tableClass) {
+	DWORD dwRes = _update_table(GetExtendedUdpTable, tableClass, AF_INET6);
 
 	return dwRes;
 }

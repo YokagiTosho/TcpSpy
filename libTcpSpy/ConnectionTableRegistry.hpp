@@ -44,26 +44,7 @@ public:
 		if (m_rows.size()) m_rows.clear();
 
 		if (m_filters.contains(Filters::IPv4)) {
-			bool table_updated = false;
-			TCP_TABLE_CLASS tcp_class;
-			if (m_filters.contains(Filters::TCP_CONNECTIONS) &&
-				m_filters.contains(Filters::TCP_LISTENING)) {
-				tcp_class = TCP_TABLE_OWNER_PID_ALL;
-				table_updated = true;
-			}
-			else if (m_filters.contains(Filters::TCP_CONNECTIONS)) {
-				tcp_class = TCP_TABLE_OWNER_PID_CONNECTIONS;
-				table_updated = true;
-			}
-			else if (m_filters.contains(Filters::TCP_LISTENING)) {
-				tcp_class = TCP_TABLE_OWNER_PID_LISTENER;
-				table_updated = true;
-			}
-
-			if (table_updated) {
-				m_tcp_table4.update(tcp_class);
-				add_rows(m_tcp_table4);
-			}
+			update_tcp_table(m_tcp_table4);
 
 			if (m_filters.contains(Filters::UDP)) {
 				m_udp_table4.update(UDP_TABLE_OWNER_PID);
@@ -72,9 +53,7 @@ public:
 		}
 
 		if (m_filters.contains(Filters::IPv6)) {
-
-			m_tcp_table6.update(UDP_TABLE_OWNER_PID);
-			add_rows(m_tcp_table6);
+			update_tcp_table(m_tcp_table6);
 
 			if (m_filters.contains(Filters::UDP)) {
 				m_udp_table6.update(UDP_TABLE_OWNER_PID);
@@ -248,6 +227,31 @@ private:
 			}
 
 			m_rows.push_back(std::make_unique<typename T::ConnectionEntryT>(row, proc_ptr));
+		}
+	}
+
+	template<typename Table>
+	void update_tcp_table(Table &table) {
+		bool table_updated = false;
+		TCP_TABLE_CLASS tcp_class;
+
+		if (m_filters.contains(Filters::TCP_CONNECTIONS) &&
+			m_filters.contains(Filters::TCP_LISTENING)) {
+			tcp_class = TCP_TABLE_OWNER_PID_ALL;
+			table_updated = true;
+		}
+		else if (m_filters.contains(Filters::TCP_CONNECTIONS)) {
+			tcp_class = TCP_TABLE_OWNER_PID_CONNECTIONS;
+			table_updated = true;
+		}
+		else if (m_filters.contains(Filters::TCP_LISTENING)) {
+			tcp_class = TCP_TABLE_OWNER_PID_LISTENER;
+			table_updated = true;
+		}
+
+		if (table_updated) {
+			table.update(tcp_class);
+			add_rows(table);
 		}
 	}
 
