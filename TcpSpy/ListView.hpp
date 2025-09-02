@@ -80,10 +80,10 @@ public:
 	}
 
 	void insert_items(ConnectionsTableRegistry &reg) {
-		if (!reg.size()) return;
-
 		ListView_DeleteAllItems(m_lv);
 		ImageList_RemoveAll(m_image_list);
+
+		if (!reg.size()) return;
 
 		LVITEM item;
 		ZeroMemory(&item, sizeof(item));

@@ -92,6 +92,12 @@ public:
 
 	DWORD update();
 
+	void clear() {
+		if (m_table != nullptr) {
+			memset(m_table, 0, m_size);
+		}
+	}
+
 	~ConnectionsTable() { free_table(); }
 
 	Iterator begin() { return m_table ? Iterator(&m_table->table[0]) : nullptr; }

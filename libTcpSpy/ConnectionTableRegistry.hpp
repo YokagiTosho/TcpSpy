@@ -21,8 +21,6 @@ enum class SortBy {
 	State,
 };
 
-
-
 class ConnectionsTableRegistry {
 public:
 	enum class Filters {
@@ -36,18 +34,34 @@ public:
 	}
 
 	void update() {
-		m_tcp_table4.update();
-		m_tcp_table6.update();
-		m_udp_table4.update();
-		m_udp_table6.update();
+		m_tcp_table4.clear();
+		m_tcp_table6.clear();
+		m_udp_table4.clear();
+		m_udp_table6.clear();
 
 		if (m_rows.size()) m_rows.clear();
 
-		// just to update m_rows, result is not needed
-		add_rows(m_tcp_table4);
-		add_rows(m_tcp_table6);
-		add_rows(m_udp_table4);
-		add_rows(m_udp_table6);
+		if (m_filters.contains(Filters::IPv4)) {
+			m_tcp_table4.update();
+			add_rows(m_tcp_table4);
+
+			if (m_filters.contains(Filters::UDP)) {
+				m_udp_table4.update();
+				add_rows(m_udp_table4);
+			}
+		}
+
+		if (m_filters.contains(Filters::IPv6)) {
+			m_tcp_table6.update();
+			add_rows(m_tcp_table6);
+
+			if (m_filters.contains(Filters::UDP)) {
+				m_udp_table6.update();
+				add_rows(m_udp_table6);
+			}
+		}
+
+		sort(SortBy::ProcessName);
 	}
 
 	const ConnectionEntryPtrs& get() {

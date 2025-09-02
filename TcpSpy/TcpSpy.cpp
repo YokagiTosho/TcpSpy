@@ -196,7 +196,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		case ID_IPVERSION_IPV4:
 			CheckUncheckMenuItem(ID_IPVERSION_IPV4, (DisplayIPv4 = !DisplayIPv4));
-			
+			if (DisplayIPv4) {
+				connectionsRegistry.add_filter(ConnectionsTableRegistry::Filters::IPv4);
+			}
+			else {
+				connectionsRegistry.remove_filter(ConnectionsTableRegistry::Filters::IPv4);
+
+			}
 			break;
 		case ID_IPVERSION_IPV6:
 			CheckUncheckMenuItem(ID_IPVERSION_IPV6, (DisplayIPv6 = !DisplayIPv6));
