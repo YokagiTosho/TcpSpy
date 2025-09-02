@@ -36,6 +36,9 @@ public:
 	{
 	}
 
+	ConnectionsTableRegistry(const ConnectionsTableRegistry& ctr) = delete;
+	ConnectionsTableRegistry(ConnectionsTableRegistry&& ctr) = delete;
+
 	void update() {
 		m_tcp_table4.clear();
 		m_tcp_table6.clear();
@@ -47,19 +50,13 @@ public:
 		if (m_filters.contains(Filters::IPv4)) {
 			update_tcp_table(m_tcp_table4);
 
-			if (m_filters.contains(Filters::UDP)) {
-				m_udp_table4.update(UDP_TABLE_OWNER_PID);
-				add_rows(m_udp_table4);
-			}
+			update_udp_table(m_udp_table4);
 		}
 
 		if (m_filters.contains(Filters::IPv6)) {
 			update_tcp_table(m_tcp_table6);
 
-			if (m_filters.contains(Filters::UDP)) {
-				m_udp_table6.update(UDP_TABLE_OWNER_PID);
-				add_rows(m_udp_table6);
-			}
+			update_udp_table(m_udp_table6);
 		}
 
 		sort(SortBy::ProcessName);
@@ -241,6 +238,14 @@ private:
 
 		if (table_updated) {
 			table.update(tcp_class);
+			add_rows(table);
+		}
+	}
+
+	template<typename Table>
+	void update_udp_table(Table& table) {
+		if (m_filters.contains(Filters::UDP)) {
+			table.update(UDP_TABLE_OWNER_PID);
 			add_rows(table);
 		}
 	}
