@@ -8,6 +8,7 @@
 #include <optional>
 #include <memory>
 #include <algorithm>
+#include <functional>
 
 enum class SortBy {
 	ProcessName,
@@ -93,8 +94,6 @@ public:
 	}
 
 	void sort(SortBy sort_by, bool asc_order = true) {
-		using TCP_ptr = ConnectionEntryTCP*;
-
 		auto beg = m_rows.begin();
 
 		switch (sort_by) {
@@ -102,6 +101,9 @@ public:
 		case SortBy::RemotePort:
 		case SortBy::State:
 		{
+			// Move UDP entries to the beginning or the end, depending on sorting.
+			// UDP entries do not have remote address, remote port and state
+			// so that they will be always in the beginning, or the end
 			auto it = std::partition(beg, m_rows.end(), [asc_order](const ConnectionEntryPtr& r) {
 				if (r->protocol() == ConnectionProtocol::PROTO_UDP) {
 					return asc_order;
@@ -118,86 +120,76 @@ public:
 			break;
 		}
 
+		auto cmpFun = [asc_order]<typename T>(T a, T b) {
+			if (asc_order) return a < b;
+			else           return a > b;
+			};
+
 		switch (sort_by)
 		{
 		case SortBy::ProcessName:
-			std::sort(m_rows.begin(), m_rows.end(), [asc_order](const ConnectionEntryPtr& a, const ConnectionEntryPtr& b) {
-				if (asc_order) return a->get_process_name() < b->get_process_name();
-				else           return a->get_process_name() > b->get_process_name();
+			std::sort(m_rows.begin(), m_rows.end(), [&cmpFun](const ConnectionEntryPtr& a, const ConnectionEntryPtr& b) {
+				return cmpFun(a->get_process_name(), b->get_process_name());
 				});
 			break;
 		case SortBy::PID:
-			std::sort(m_rows.begin(), m_rows.end(), [asc_order](const ConnectionEntryPtr& a, const ConnectionEntryPtr& b) {
-				if (asc_order) return a->pid() < b->pid();
-				else           return a->pid() > b->pid();
+			std::sort(m_rows.begin(), m_rows.end(), [&cmpFun](const ConnectionEntryPtr& a, const ConnectionEntryPtr& b) {
+				return cmpFun(a->pid(), b->pid());
 				});
 			break;
 		case SortBy::Protocol:
-			std::sort(m_rows.begin(), m_rows.end(), [asc_order](const ConnectionEntryPtr& a, const ConnectionEntryPtr& b) {
-				if (asc_order) return (int)a->protocol() < (int)b->protocol();
-				else           return (int)a->protocol() > (int)b->protocol();
+			std::sort(m_rows.begin(), m_rows.end(), [&cmpFun](const ConnectionEntryPtr& a, const ConnectionEntryPtr& b) {
+				return cmpFun((int)a->protocol(), (int)b->protocol());
 				});
 			break;
 		case SortBy::INET:
-			std::sort(m_rows.begin(), m_rows.end(), [asc_order](const ConnectionEntryPtr& a, const ConnectionEntryPtr& b) {
-				if (asc_order) return (int)a->address_family() < (int)b->address_family();
-				else           return (int)a->address_family() > (int)b->address_family();
+			std::sort(m_rows.begin(), m_rows.end(), [&cmpFun](const ConnectionEntryPtr& a, const ConnectionEntryPtr& b) {
+				return cmpFun((int)a->address_family(), (int)b->address_family());
 				});
 			break;
 		case SortBy::LocalAddress:
-			std::sort(m_rows.begin(), m_rows.end(), [asc_order](const ConnectionEntryPtr& a, const ConnectionEntryPtr& b) {
-				if (asc_order) return a->local_addr_str() < b->local_addr_str();
-				else           return a->local_addr_str() > b->local_addr_str();
+			std::sort(m_rows.begin(), m_rows.end(), [&cmpFun](const ConnectionEntryPtr& a, const ConnectionEntryPtr& b) {
+				return cmpFun(a->local_addr_str(), b->local_addr_str());
 				});
 			break;
 		case SortBy::LocalPort:
-			std::sort(m_rows.begin(), m_rows.end(), [asc_order](const ConnectionEntryPtr& a, const ConnectionEntryPtr& b) {
-				if (asc_order) return a->local_port() < b->local_port();
-				else           return a->local_port() > b->local_port();
+			std::sort(m_rows.begin(), m_rows.end(), [&cmpFun](const ConnectionEntryPtr& a, const ConnectionEntryPtr& b) {
+				return cmpFun(a->local_port(), b->local_port());
 				});
 			break;
 		// TCP rows can be compared, while UDP rows do not have remote addr, remote port, state
 		case SortBy::RemoteAddress:
-			std::sort(beg, m_rows.end(), [asc_order](const ConnectionEntryPtr& a, const ConnectionEntryPtr& b) {
-				TCP_ptr tcp_a{ nullptr };
-				TCP_ptr tcp_b{ nullptr };
-
-				if ((tcp_a = dynamic_cast<TCP_ptr>(a.get())) &&
-					(tcp_b = dynamic_cast<TCP_ptr>(b.get())))
-				{
-					if (asc_order) return tcp_a->remote_addr_str() < tcp_b->remote_addr_str();
-					else           return tcp_a->remote_addr_str() > tcp_b->remote_addr_str();
-				}
+			std::sort(beg, m_rows.end(), [&cmpFun](const ConnectionEntryPtr& a, const ConnectionEntryPtr& b) {
+				if (a->protocol() == ConnectionProtocol::PROTO_TCP &&
+					b->protocol() == ConnectionProtocol::PROTO_TCP)
+					return cmpFun(
+						dynamic_cast<ConnectionEntryTCP*>(a.get())->remote_addr_str(),
+						dynamic_cast<ConnectionEntryTCP*>(b.get())->remote_addr_str()
+					);
+				
 				// unable to cast becase its not ConnectionEntryTCP*, but UDP
 				return false;
 				});
 			break;
 		case SortBy::RemotePort:
-			std::sort(beg, m_rows.end(), [asc_order](const ConnectionEntryPtr& a, const ConnectionEntryPtr& b) {
-				TCP_ptr tcp_a{ nullptr };
-				TCP_ptr tcp_b{ nullptr };
-
-				
-				if ((tcp_a = dynamic_cast<TCP_ptr>(a.get())) &&
-					(tcp_b = dynamic_cast<TCP_ptr>(b.get())))
-				{
-					if (asc_order) return tcp_a->remote_port() < tcp_b->remote_port();
-					else           return tcp_a->remote_port() > tcp_b->remote_port();
-				}
+			std::sort(beg, m_rows.end(), [&cmpFun](const ConnectionEntryPtr& a, const ConnectionEntryPtr& b) {
+				if (a->protocol() == ConnectionProtocol::PROTO_TCP &&
+					b->protocol() == ConnectionProtocol::PROTO_TCP) 
+					return cmpFun(
+						dynamic_cast<ConnectionEntryTCP*>(a.get())->remote_port(),
+						dynamic_cast<ConnectionEntryTCP*>(b.get())->remote_port()
+					);
 				return false;
 				});
 			break;
 		case SortBy::State:
-			std::sort(beg, m_rows.end(), [asc_order](const ConnectionEntryPtr& a, const ConnectionEntryPtr& b) {
-				TCP_ptr tcp_a{ nullptr };
-				TCP_ptr tcp_b{ nullptr };
-
-				if ((tcp_a = dynamic_cast<TCP_ptr>(a.get())) &&
-					(tcp_b = dynamic_cast<TCP_ptr>(b.get())))
-				{
-					if (asc_order) return tcp_a->state() < tcp_b->state();
-					else           return tcp_a->state() > tcp_b->state();
-				}
+			std::sort(beg, m_rows.end(), [&cmpFun](const ConnectionEntryPtr& a, const ConnectionEntryPtr& b) {
+				if (a->protocol() == ConnectionProtocol::PROTO_TCP &&
+					b->protocol() == ConnectionProtocol::PROTO_TCP)
+					return cmpFun(
+						dynamic_cast<ConnectionEntryTCP*>(a.get())->state(),
+						dynamic_cast<ConnectionEntryTCP*>(b.get())->state()
+					);
 				return false;
 				});
 			break;
