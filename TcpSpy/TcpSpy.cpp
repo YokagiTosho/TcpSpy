@@ -186,13 +186,30 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		case ID_TCP_LISTENER:
 			CheckUncheckMenuItem(ID_TCP_LISTENER, (DisplayTCPListeners = !DisplayTCPListeners));
+			if (DisplayTCPListeners) {
+				connectionsRegistry.add_filter(ConnectionsTableRegistry::Filters::TCP_LISTENING);
+			}
+			else {
+				connectionsRegistry.remove_filter(ConnectionsTableRegistry::Filters::TCP_LISTENING);
+			}
 			break;
 		case ID_TCP_CONNECTED:
 			CheckUncheckMenuItem(ID_TCP_CONNECTED, (DisplayTCPConnections = !DisplayTCPConnections));
+			if (DisplayTCPConnections) {
+				connectionsRegistry.add_filter(ConnectionsTableRegistry::Filters::TCP_CONNECTIONS);
+			}
+			else {
+				connectionsRegistry.remove_filter(ConnectionsTableRegistry::Filters::TCP_CONNECTIONS);
+			}
 			break;
 		case ID_VIEW_UDP:
 			CheckUncheckMenuItem(ID_VIEW_UDP, (DisplayUDP = !DisplayUDP));
-			
+			if (DisplayUDP) {
+				connectionsRegistry.add_filter(ConnectionsTableRegistry::Filters::UDP);
+			}
+			else {
+				connectionsRegistry.remove_filter(ConnectionsTableRegistry::Filters::UDP);
+			}
 			break;
 		case ID_IPVERSION_IPV4:
 			CheckUncheckMenuItem(ID_IPVERSION_IPV4, (DisplayIPv4 = !DisplayIPv4));
@@ -201,12 +218,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 			else {
 				connectionsRegistry.remove_filter(ConnectionsTableRegistry::Filters::IPv4);
-
 			}
 			break;
 		case ID_IPVERSION_IPV6:
 			CheckUncheckMenuItem(ID_IPVERSION_IPV6, (DisplayIPv6 = !DisplayIPv6));
-			
+			if (DisplayIPv6) {
+				connectionsRegistry.add_filter(ConnectionsTableRegistry::Filters::IPv6);
+			}
+			else {
+				connectionsRegistry.remove_filter(ConnectionsTableRegistry::Filters::IPv6);
+			}
 			break;
 		case IDM_EXIT:
 			DestroyWindow(hWnd);
@@ -219,13 +240,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_NOTIFY:
 		HandleWM_NOTIFY(lParam);
 		break;
-	case WM_PAINT:
-	{
-		PAINTSTRUCT ps;
-		HDC hdc = BeginPaint(hWnd, &ps);
-		EndPaint(hWnd, &ps);
-	}
-	break;
 	case WM_SIZE:
 		listView->resize();
 		break;
@@ -268,7 +282,6 @@ void CheckUncheckMenuItem(int menu_item_id, int flag) {
 }
 
 void ProcessListViewEntry(LPARAM lParam) {
-
 	NMLVDISPINFO* plvdi = (NMLVDISPINFO*)lParam;
 
 	auto &row = connectionsRegistry.get()[plvdi->item.iItem];
@@ -341,6 +354,7 @@ void ProcessListViewEntry(LPARAM lParam) {
 	default:
 		return;
 	}
+
 	HRESULT res = StringCchCopyW(buf, BUF_LEN, (LPWSTR)tmp.c_str());
 
 	if (res == STRSAFE_E_INVALID_PARAMETER) {

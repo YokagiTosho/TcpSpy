@@ -9,8 +9,6 @@
 
 #include "ConnectionEntry.hpp"
 
-using TableClasses = std::variant<TCP_TABLE_CLASS, UDP_TABLE_CLASS>;
-
 template<typename T, typename R>
 class ConnectionsTable {
 public:
@@ -90,7 +88,8 @@ public:
 		ct.m_size = sizeof(T);
 	}
 
-	DWORD update();
+	template<typename T>
+	DWORD update(T tableClass);
 
 	void clear() {
 		if (m_table != nullptr) {
@@ -104,35 +103,34 @@ public:
 	Iterator end() { return m_table ? Iterator(&m_table->table[m_table->dwNumEntries]) : nullptr; }
 
 private:
-	typedef DWORD(__stdcall* GetExtendedTcpTablePtr)(PVOID, PDWORD, BOOL, ULONG, TCP_TABLE_CLASS, ULONG);
-	typedef DWORD(__stdcall* GetExtendedUdpTablePtr)(PVOID, PDWORD, BOOL, ULONG, UDP_TABLE_CLASS, ULONG);
-
-	using GetExtendedTablePtrs = std::variant<GetExtendedTcpTablePtr, GetExtendedUdpTablePtr>;
-
-
-	template<typename Table, typename TableClass, ULONG AddressFamily = AF_INET>
+	template<typename Func, typename TableClass>
 	DWORD _update_table(
-		GetExtendedTablePtrs getExtendedTable,
-		TableClasses tableClass)
+		Func getExtendedTable,
+		TableClass tableClass,
+		ULONG AddressFamily = AF_INET)
 	{
 		if (m_table == nullptr) {
 			alloc_table();
 		}
 
-		DWORD dwRes = std::get<Table>(getExtendedTable)
-			(m_table, &m_size, TRUE, AddressFamily, std::get<TableClass>(tableClass), 0);
+		// m_size will be overwritten on call
+		m_size = m_initial_size;
+
+		DWORD dwRes = getExtendedTable(m_table, &m_size, TRUE, AddressFamily, tableClass, 0);
 
 		if (dwRes == ERROR_INSUFFICIENT_BUFFER) {
 			free_table();
 			alloc_table();
 
-			dwRes = std::get<Table>(getExtendedTable)
-				(m_table, &m_size, TRUE, AddressFamily, std::get<TableClass>(tableClass), 0);
+			dwRes = getExtendedTable(m_table, &m_size, TRUE, AddressFamily, tableClass, 0);
 
 			if (dwRes != NO_ERROR) {
 				free_table();
 				return dwRes;
 			}
+
+			// if new size of table is more than initial size, that was allocated on creation, store this size for further calls
+			m_initial_size = m_size;
 		}
 
 		return dwRes;
@@ -153,49 +151,39 @@ private:
 	}
 
 	T* m_table{ nullptr };
-	DWORD m_size{ sizeof(T) };
+	// Pre-allocate page, so no need to re-allocate if not enough memory -> the less allocations the better
+	DWORD m_initial_size{ 4096 };
+	DWORD m_size{ m_initial_size };
 };
 
 template<>
-DWORD ConnectionsTable<MIB_TCPTABLE_OWNER_PID, MIB_TCPROW_OWNER_PID>::update() {
-	DWORD dwRes = _update_table<GetExtendedTcpTablePtr, TCP_TABLE_CLASS>
-		(
-			GetExtendedTcpTable,
-			TCP_TABLE_OWNER_PID_ALL
-		);
+template<typename T>
+DWORD ConnectionsTable<MIB_TCPTABLE_OWNER_PID, MIB_TCPROW_OWNER_PID>::update(T tableClass) {
+	DWORD dwRes = _update_table(GetExtendedTcpTable, TCP_TABLE_OWNER_PID_ALL);
 
 	return dwRes;
 }
 
 template<>
-DWORD ConnectionsTable<MIB_TCP6TABLE_OWNER_PID, MIB_TCP6ROW_OWNER_PID>::update() {
-	DWORD dwRes = _update_table<GetExtendedTcpTablePtr, TCP_TABLE_CLASS, AF_INET6>
-		(
-			GetExtendedTcpTable,
-			TCP_TABLE_OWNER_PID_ALL
-		);
+template<typename T>
+DWORD ConnectionsTable<MIB_TCP6TABLE_OWNER_PID, MIB_TCP6ROW_OWNER_PID>::update(T tableClass) {
+	DWORD dwRes = _update_table(GetExtendedTcpTable, TCP_TABLE_OWNER_PID_ALL, AF_INET6);
 
 	return dwRes;
 }
 
 template<>
-DWORD ConnectionsTable<MIB_UDPTABLE_OWNER_PID, MIB_UDPROW_OWNER_PID>::update() {
-	DWORD dwRes = _update_table<GetExtendedUdpTablePtr, UDP_TABLE_CLASS>
-		(
-			GetExtendedUdpTable,
-			UDP_TABLE_OWNER_PID
-		);
+template<typename T>
+DWORD ConnectionsTable<MIB_UDPTABLE_OWNER_PID, MIB_UDPROW_OWNER_PID>::update(T tableClass) {
+	DWORD dwRes = _update_table(GetExtendedUdpTable, UDP_TABLE_OWNER_PID);
 
 	return dwRes;
 }
 
 template<>
-DWORD ConnectionsTable<MIB_UDP6TABLE_OWNER_PID, MIB_UDP6ROW_OWNER_PID>::update() {
-	DWORD dwRes = _update_table<GetExtendedUdpTablePtr, UDP_TABLE_CLASS, AF_INET6>
-		(
-			GetExtendedUdpTable,
-			UDP_TABLE_OWNER_PID
-		);
+template<typename T>
+DWORD ConnectionsTable<MIB_UDP6TABLE_OWNER_PID, MIB_UDP6ROW_OWNER_PID>::update(T tableClass) {
+	DWORD dwRes = _update_table(GetExtendedUdpTable, UDP_TABLE_OWNER_PID, AF_INET6);
 
 	return dwRes;
 }

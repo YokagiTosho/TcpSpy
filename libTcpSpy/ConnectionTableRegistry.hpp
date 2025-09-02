@@ -27,6 +27,8 @@ public:
 		IPv4,
 		IPv6,
 		UDP,
+		TCP_CONNECTIONS,
+		TCP_LISTENING,
 	};
 
 	ConnectionsTableRegistry()
@@ -42,21 +44,40 @@ public:
 		if (m_rows.size()) m_rows.clear();
 
 		if (m_filters.contains(Filters::IPv4)) {
-			m_tcp_table4.update();
-			add_rows(m_tcp_table4);
+			bool table_updated = false;
+			TCP_TABLE_CLASS tcp_class;
+			if (m_filters.contains(Filters::TCP_CONNECTIONS) &&
+				m_filters.contains(Filters::TCP_LISTENING)) {
+				tcp_class = TCP_TABLE_OWNER_PID_ALL;
+				table_updated = true;
+			}
+			else if (m_filters.contains(Filters::TCP_CONNECTIONS)) {
+				tcp_class = TCP_TABLE_OWNER_PID_CONNECTIONS;
+				table_updated = true;
+			}
+			else if (m_filters.contains(Filters::TCP_LISTENING)) {
+				tcp_class = TCP_TABLE_OWNER_PID_LISTENER;
+				table_updated = true;
+			}
+
+			if (table_updated) {
+				m_tcp_table4.update(tcp_class);
+				add_rows(m_tcp_table4);
+			}
 
 			if (m_filters.contains(Filters::UDP)) {
-				m_udp_table4.update();
+				m_udp_table4.update(UDP_TABLE_OWNER_PID);
 				add_rows(m_udp_table4);
 			}
 		}
 
 		if (m_filters.contains(Filters::IPv6)) {
-			m_tcp_table6.update();
+
+			m_tcp_table6.update(UDP_TABLE_OWNER_PID);
 			add_rows(m_tcp_table6);
 
 			if (m_filters.contains(Filters::UDP)) {
-				m_udp_table6.update();
+				m_udp_table6.update(UDP_TABLE_OWNER_PID);
 				add_rows(m_udp_table6);
 			}
 		}
@@ -237,7 +258,9 @@ private:
 
 	ConnectionEntryPtrs m_rows;
 
-	std::unordered_set<Filters> m_filters{ Filters::IPv4, Filters::IPv6, Filters::UDP };
+	std::unordered_set<Filters> m_filters{ 
+		Filters::IPv4, Filters::IPv6, Filters::TCP_CONNECTIONS,	Filters::TCP_LISTENING, Filters::UDP
+	};
 
 	std::unordered_map<DWORD, ProcessPtr> m_proc_cache{};
 
