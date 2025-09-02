@@ -21,8 +21,15 @@ enum class SortBy {
 	State,
 };
 
+
+
 class ConnectionsTableRegistry {
 public:
+	enum class Filters {
+		IPv4,
+		IPv6,
+		UDP,
+	};
 
 	ConnectionsTableRegistry()
 	{
@@ -34,25 +41,16 @@ public:
 		m_udp_table4.update();
 		m_udp_table6.update();
 
-		m_updated = false;
-
 		if (m_rows.size()) m_rows.clear();
 
 		// just to update m_rows, result is not needed
-		get();
-	}
-
-	const ConnectionEntryPtrs& get() {
-		if (m_updated) return m_rows;
-
-
 		add_rows(m_tcp_table4);
 		add_rows(m_tcp_table6);
 		add_rows(m_udp_table4);
 		add_rows(m_udp_table6);
+	}
 
-		m_updated = true;
-
+	const ConnectionEntryPtrs& get() {
 		return m_rows;
 	}
 
@@ -66,6 +64,18 @@ public:
 
 	ConnectionEntryPtrs::iterator end() {
 		return m_rows.end();
+	}
+
+	void add_filter(Filters filter) {
+		m_filters.insert(filter);
+	}
+
+	bool remove_filter(Filters filter) {
+		if (m_filters.find(filter) != m_filters.end()) {
+			m_filters.erase(filter);
+			return true;
+		}
+		return false;
 	}
 
 	void sort(SortBy sort_by, bool asc_order = true) {
@@ -90,13 +100,9 @@ public:
 			if (asc_order) {
 				beg = it;
 			}
-
 		}
 			break;
 		}
-		
-
-		
 
 		switch (sort_by)
 		{
@@ -196,12 +202,11 @@ private:
 			if (auto it = m_proc_cache.find(proc_pid); it != m_proc_cache.end()) {
 				// proc is in cache
 				proc_ptr = it->second;
-
 			}
 			else {
 				proc_ptr = std::make_shared<Process>(row.dwOwningPid);
 				if (!proc_ptr->open()) {
-					//continue; // do not store processes and thus ConnectionEntry
+					continue; // do not store processes and thus ConnectionEntry
 				}
 
 				m_proc_cache[proc_pid] = proc_ptr;
@@ -217,7 +222,8 @@ private:
 	UdpTable6 m_udp_table6{};
 
 	ConnectionEntryPtrs m_rows;
-	std::unordered_set<int> m_filters;
+
+	std::unordered_set<Filters> m_filters{ Filters::IPv4, Filters::IPv6, Filters::UDP };
 
 	std::unordered_map<DWORD, ProcessPtr> m_proc_cache{};
 

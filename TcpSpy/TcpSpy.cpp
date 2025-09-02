@@ -16,22 +16,17 @@ WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
 ListView::pointer listView;
 ConnectionsTableRegistry connectionsRegistry;
 
+HMENU Menu;
+static bool DisplayTCPConnections = true;
+static bool DisplayTCPListeners = true;
+static bool DisplayUDP = true;
+static bool DisplayIPv4 = true;
+static bool DisplayIPv6 = true;
+
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
-
-#if 0
-#define PROC_NAME 0
-#define PID       1
-#define PROTOCOL  2
-#define IPVERSION 3
-#define LOC_ADDR  4
-#define LOC_PORT  5
-#define REM_ADDR  6
-#define REM_PORT  7
-#define STATE     8
-#endif
 
 enum ListViewColumns {
 	PROC_NAME,
@@ -48,6 +43,7 @@ enum ListViewColumns {
 void InitCommonControls();
 void InitWSA();
 void HandleWM_NOTIFY(LPARAM lParam);
+void CheckUncheckMenuItem(int menu_item_id, int flag);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
@@ -130,24 +126,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 		return FALSE;
 	}
 
-	// init windows that depend on main window, initialize them. (Maybe should be moved to WM_CREATE in WndProc)
-	listView = std::make_unique<ListView>(hWnd);
-
-	listView->init_list({
-	   L"Process name",
-	   L"PID",
-	   L"Protocol",
-	   L"IP version",
-	   L"Local address",
-	   L"Local port",
-	   L"Remote address",
-	   L"Remote port",
-	   L"State"
-		});
-
-	connectionsRegistry.update();
-
-	listView->insert_items(connectionsRegistry);
+	
 
 	ShowWindow(hWnd, nCmdShow);
 	UpdateWindow(hWnd);
@@ -171,6 +150,27 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 
 	case WM_CREATE:
+		// init windows that depend on main window, initialize them
+
+		Menu = GetMenu(hWnd);
+
+		listView = std::make_unique<ListView>(hWnd);
+
+		listView->init_list({
+		   L"Process name",
+		   L"PID",
+		   L"Protocol",
+		   L"IP version",
+		   L"Local address",
+		   L"Local port",
+		   L"Remote address",
+		   L"Remote port",
+		   L"State"
+			});
+
+		connectionsRegistry.update();
+
+		listView->insert_items(connectionsRegistry);
 		break;
 	case WM_COMMAND:
 	{
@@ -183,6 +183,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case ID_VIEW_REFRESH:
 			connectionsRegistry.update();
 			listView->insert_items(connectionsRegistry);
+			break;
+		case ID_TCP_LISTENER:
+			CheckUncheckMenuItem(ID_TCP_LISTENER, (DisplayTCPListeners = !DisplayTCPListeners));
+			break;
+		case ID_TCP_CONNECTED:
+			CheckUncheckMenuItem(ID_TCP_CONNECTED, (DisplayTCPConnections = !DisplayTCPConnections));
+			break;
+		case ID_VIEW_UDP:
+			CheckUncheckMenuItem(ID_VIEW_UDP, (DisplayUDP = !DisplayUDP));
+			
+			break;
+		case ID_IPVERSION_IPV4:
+			CheckUncheckMenuItem(ID_IPVERSION_IPV4, (DisplayIPv4 = !DisplayIPv4));
+			
+			break;
+		case ID_IPVERSION_IPV6:
+			CheckUncheckMenuItem(ID_IPVERSION_IPV6, (DisplayIPv6 = !DisplayIPv6));
+			
 			break;
 		case IDM_EXIT:
 			DestroyWindow(hWnd);
@@ -237,6 +255,10 @@ void InitCommonControls() {
 	INITCOMMONCONTROLSEX icc{};
 	icc.dwICC = ICC_LISTVIEW_CLASSES;
 	InitCommonControlsEx(&icc);
+}
+
+void CheckUncheckMenuItem(int menu_item_id, int flag) {
+	CheckMenuItem(Menu, menu_item_id, MF_BYCOMMAND | (flag ? MF_CHECKED : MF_UNCHECKED));
 }
 
 void ProcessListViewEntry(LPARAM lParam) {
@@ -324,6 +346,7 @@ void ProcessListViewEntry(LPARAM lParam) {
 
 void SortColumn(LPARAM lParam) {
 	LPNMLISTVIEW pnmv = (LPNMLISTVIEW)lParam;
+
 	if (pnmv->iSubItem < 0 || pnmv->iSubItem > ListViewColumns::STATE) {
 		// out of bounds
 		return;
@@ -341,7 +364,6 @@ void SortColumn(LPARAM lParam) {
 
 	connectionsRegistry.sort((SortBy)pnmv->iSubItem, asc);
 
-
 	listView->insert_items(connectionsRegistry);
 
 	prev_clicked_column = pnmv->iSubItem;
@@ -355,6 +377,8 @@ void HandleWM_NOTIFY(LPARAM lParam) {
 		break;
 	case LVN_COLUMNCLICK:
 		SortColumn(lParam);
+		break;
+	case NM_RCLICK:
 		break;
 	}
 }

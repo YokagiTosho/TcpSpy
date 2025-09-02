@@ -13,6 +13,13 @@
 #define IDC_TCPSPY                      109
 #define IDR_MAINFRAME                   128
 #define ID_VIEW_REFRESH                 32771
+#define ID_VIEW_TCP                     32772
+#define ID_TCP_LISTENER                 32773
+#define ID_TCP_CONNECTED                32774
+#define ID_VIEW_UDP                     32775
+#define ID_VIEW_IPVERSION               32776
+#define ID_IPVERSION_IPV4               32777
+#define ID_IPVERSION_IPV6               32778
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
@@ -21,7 +28,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        130
-#define _APS_NEXT_COMMAND_VALUE         32772
+#define _APS_NEXT_COMMAND_VALUE         32779
 #define _APS_NEXT_CONTROL_VALUE         1000
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
