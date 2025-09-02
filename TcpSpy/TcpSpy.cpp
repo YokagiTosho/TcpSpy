@@ -40,10 +40,10 @@ enum ListViewColumns {
 	STATE,
 };
 
-void InitCommonControls();
-void InitWSA();
-void HandleWM_NOTIFY(LPARAM lParam);
-void CheckUncheckMenuItem(int menu_item_id, int flag);
+static void InitCommonCtrls();
+static void InitWSA();
+static void HandleWM_NOTIFY(LPARAM lParam);
+static void CheckUncheckMenuItem(int menu_item_id, int flag);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
@@ -54,7 +54,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	UNREFERENCED_PARAMETER(lpCmdLine);
 	
 	InitWSA();
-	InitCommonControls();
+	InitCommonCtrls();
 	
 	LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
 	LoadStringW(hInstance, IDC_TCPSPY, szWindowClass, MAX_LOADSTRING);
@@ -271,17 +271,17 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	return (INT_PTR)FALSE;
 }
 
-void InitCommonControls() {
+void InitCommonCtrls() {
 	INITCOMMONCONTROLSEX icc{};
 	icc.dwICC = ICC_LISTVIEW_CLASSES;
 	InitCommonControlsEx(&icc);
 }
 
-void CheckUncheckMenuItem(int menu_item_id, int flag) {
+static void CheckUncheckMenuItem(int menu_item_id, int flag) {
 	CheckMenuItem(Menu, menu_item_id, MF_BYCOMMAND | (flag ? MF_CHECKED : MF_UNCHECKED));
 }
 
-void ProcessListViewEntry(LPARAM lParam) {
+static void ProcessListViewEntry(LPARAM lParam) {
 	NMLVDISPINFO* plvdi = (NMLVDISPINFO*)lParam;
 
 	auto &row = connectionsRegistry.get()[plvdi->item.iItem];
@@ -293,10 +293,10 @@ void ProcessListViewEntry(LPARAM lParam) {
 	switch (plvdi->item.iSubItem)
 	{
 	case ListViewColumns::PROC_NAME:
-		tmp = row->get_process_name().c_str();
+		tmp = row->get_process_name();
 		break;
 	case ListViewColumns::PID:
-		tmp = row->pid_str().c_str();
+		tmp = row->pid_str();
 		break;
 	case ListViewColumns::PROTOCOL:
 		switch (row->protocol()) {
@@ -322,14 +322,14 @@ void ProcessListViewEntry(LPARAM lParam) {
 		}
 		return; // return so plvdi->item.pszText is not assigned at the end of function
 	case ListViewColumns::LOC_ADDR:
-		tmp = row->local_addr_str().c_str();
+		tmp = row->local_addr_str();
 		break;
 	case ListViewColumns::LOC_PORT:
-		tmp = row->local_port_str().c_str();
+		tmp = row->local_port_str();
 		break;
 	case ListViewColumns::REM_ADDR:
 		if (auto p = dynamic_cast<ConnectionEntryTCP*>(row.get())) {
-			tmp = p->remote_addr_str().c_str();
+			tmp = p->remote_addr_str();
 		}
 		else {
 			return;
@@ -337,7 +337,7 @@ void ProcessListViewEntry(LPARAM lParam) {
 		break;
 	case ListViewColumns::REM_PORT:
 		if (auto p = dynamic_cast<ConnectionEntryTCP*>(row.get())) {
-			tmp = p->remote_port_str().c_str();
+			tmp = p->remote_port_str();
 		}
 		else {
 			return;
@@ -345,7 +345,7 @@ void ProcessListViewEntry(LPARAM lParam) {
 		break;
 	case ListViewColumns::STATE:
 		if (auto p = dynamic_cast<ConnectionEntryTCP*>(row.get())) {
-			tmp = p->state_str().c_str();
+			tmp = p->state_str();
 		}
 		else {
 			return;
@@ -364,7 +364,7 @@ void ProcessListViewEntry(LPARAM lParam) {
 	plvdi->item.pszText = buf;
 }
 
-void SortColumn(LPARAM lParam) {
+static void SortColumn(LPARAM lParam) {
 	LPNMLISTVIEW pnmv = (LPNMLISTVIEW)lParam;
 
 	if (pnmv->iSubItem < 0 || pnmv->iSubItem > ListViewColumns::STATE) {
@@ -389,7 +389,7 @@ void SortColumn(LPARAM lParam) {
 	prev_clicked_column = pnmv->iSubItem;
 }
 
-void HandleWM_NOTIFY(LPARAM lParam) {
+static void HandleWM_NOTIFY(LPARAM lParam) {
 	switch (((NMHDR*)lParam)->code)
 	{
 	case LVN_GETDISPINFO:
@@ -403,7 +403,7 @@ void HandleWM_NOTIFY(LPARAM lParam) {
 	}
 }
 
-void InitWSA() {
+static void InitWSA() {
 	WSADATA wsaData;
 	WORD wVersionRequested = MAKEWORD(2, 2);
 

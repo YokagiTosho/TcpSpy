@@ -166,8 +166,6 @@ public:
 						dynamic_cast<ConnectionEntryTCP*>(a.get())->remote_addr_str(),
 						dynamic_cast<ConnectionEntryTCP*>(b.get())->remote_addr_str()
 					);
-				
-				// unable to cast becase its not ConnectionEntryTCP*, but UDP
 				return false;
 				});
 			break;
