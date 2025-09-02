@@ -68,10 +68,35 @@ public:
 		return m_rows.end();
 	}
 
-	
-
 	void sort(SortBy sort_by, bool asc_order = true) {
 		using TCP_ptr = ConnectionEntryTCP*;
+
+		auto beg = m_rows.begin();
+
+		switch (sort_by) {
+		case SortBy::RemoteAddress:
+		case SortBy::RemotePort:
+		case SortBy::State:
+		{
+			auto it = std::partition(beg, m_rows.end(), [asc_order](const ConnectionEntryPtr& r) {
+				if (r->protocol() == ConnectionProtocol::PROTO_UDP) {
+					return asc_order;
+				}
+				else {
+					return !asc_order;
+				}
+				});
+			
+			if (asc_order) {
+				beg = it;
+			}
+
+		}
+			break;
+		}
+		
+
+		
 
 		switch (sort_by)
 		{
@@ -113,7 +138,7 @@ public:
 			break;
 		// TCP rows can be compared, while UDP rows do not have remote addr, remote port, state
 		case SortBy::RemoteAddress:
-			std::sort(m_rows.begin(), m_rows.end(), [asc_order](const ConnectionEntryPtr& a, const ConnectionEntryPtr& b) {
+			std::sort(beg, m_rows.end(), [asc_order](const ConnectionEntryPtr& a, const ConnectionEntryPtr& b) {
 				TCP_ptr tcp_a{ nullptr };
 				TCP_ptr tcp_b{ nullptr };
 
@@ -128,7 +153,7 @@ public:
 				});
 			break;
 		case SortBy::RemotePort:
-			std::sort(m_rows.begin(), m_rows.end(), [asc_order](const ConnectionEntryPtr& a, const ConnectionEntryPtr& b) {
+			std::sort(beg, m_rows.end(), [asc_order](const ConnectionEntryPtr& a, const ConnectionEntryPtr& b) {
 				TCP_ptr tcp_a{ nullptr };
 				TCP_ptr tcp_b{ nullptr };
 
@@ -143,7 +168,7 @@ public:
 				});
 			break;
 		case SortBy::State:
-			std::sort(m_rows.begin(), m_rows.end(), [asc_order](const ConnectionEntryPtr& a, const ConnectionEntryPtr& b) {
+			std::sort(beg, m_rows.end(), [asc_order](const ConnectionEntryPtr& a, const ConnectionEntryPtr& b) {
 				TCP_ptr tcp_a{ nullptr };
 				TCP_ptr tcp_b{ nullptr };
 
@@ -176,7 +201,7 @@ private:
 			else {
 				proc_ptr = std::make_shared<Process>(row.dwOwningPid);
 				if (!proc_ptr->open()) {
-					continue; // do not store processes and thus ConnectionEntry
+					//continue; // do not store processes and thus ConnectionEntry
 				}
 
 				m_proc_cache[proc_pid] = proc_ptr;
