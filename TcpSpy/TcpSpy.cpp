@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <strsafe.h>
 
-#include "libTcpSpy/ConnectionTableRegistry.hpp"
+#include "libTcpSpy/ConnectionsTableManager.hpp"
 #include "ListView.hpp"
 
 #define MAX_LOADSTRING 100
@@ -14,7 +14,7 @@ WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
 
 ListView::pointer listView;
-ConnectionsTableRegistry connectionsRegistry;
+ConnectionsTableManager connetionsManager;
 
 HMENU Menu;
 static bool DisplayTCPConnections = true;
@@ -168,9 +168,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		   L"State"
 			});
 
-		connectionsRegistry.update();
+		connetionsManager.update();
 
-		listView->insert_items(connectionsRegistry);
+		listView->insert_items(connetionsManager);
 		break;
 	case WM_COMMAND:
 	{
@@ -181,52 +181,52 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
 			break;
 		case ID_VIEW_REFRESH:
-			connectionsRegistry.update();
-			listView->insert_items(connectionsRegistry);
+			connetionsManager.update();
+			listView->insert_items(connetionsManager);
 			break;
 		case ID_TCP_LISTENER:
 			CheckUncheckMenuItem(ID_TCP_LISTENER, (DisplayTCPListeners = !DisplayTCPListeners));
 			if (DisplayTCPListeners) {
-				connectionsRegistry.add_filter(ConnectionsTableRegistry::Filters::TCP_LISTENING);
+				connetionsManager.add_filter(ConnectionsTableManager::Filters::TCP_LISTENING);
 			}
 			else {
-				connectionsRegistry.remove_filter(ConnectionsTableRegistry::Filters::TCP_LISTENING);
+				connetionsManager.remove_filter(ConnectionsTableManager::Filters::TCP_LISTENING);
 			}
 			break;
 		case ID_TCP_CONNECTED:
 			CheckUncheckMenuItem(ID_TCP_CONNECTED, (DisplayTCPConnections = !DisplayTCPConnections));
 			if (DisplayTCPConnections) {
-				connectionsRegistry.add_filter(ConnectionsTableRegistry::Filters::TCP_CONNECTIONS);
+				connetionsManager.add_filter(ConnectionsTableManager::Filters::TCP_CONNECTIONS);
 			}
 			else {
-				connectionsRegistry.remove_filter(ConnectionsTableRegistry::Filters::TCP_CONNECTIONS);
+				connetionsManager.remove_filter(ConnectionsTableManager::Filters::TCP_CONNECTIONS);
 			}
 			break;
 		case ID_VIEW_UDP:
 			CheckUncheckMenuItem(ID_VIEW_UDP, (DisplayUDP = !DisplayUDP));
 			if (DisplayUDP) {
-				connectionsRegistry.add_filter(ConnectionsTableRegistry::Filters::UDP);
+				connetionsManager.add_filter(ConnectionsTableManager::Filters::UDP);
 			}
 			else {
-				connectionsRegistry.remove_filter(ConnectionsTableRegistry::Filters::UDP);
+				connetionsManager.remove_filter(ConnectionsTableManager::Filters::UDP);
 			}
 			break;
 		case ID_IPVERSION_IPV4:
 			CheckUncheckMenuItem(ID_IPVERSION_IPV4, (DisplayIPv4 = !DisplayIPv4));
 			if (DisplayIPv4) {
-				connectionsRegistry.add_filter(ConnectionsTableRegistry::Filters::IPv4);
+				connetionsManager.add_filter(ConnectionsTableManager::Filters::IPv4);
 			}
 			else {
-				connectionsRegistry.remove_filter(ConnectionsTableRegistry::Filters::IPv4);
+				connetionsManager.remove_filter(ConnectionsTableManager::Filters::IPv4);
 			}
 			break;
 		case ID_IPVERSION_IPV6:
 			CheckUncheckMenuItem(ID_IPVERSION_IPV6, (DisplayIPv6 = !DisplayIPv6));
 			if (DisplayIPv6) {
-				connectionsRegistry.add_filter(ConnectionsTableRegistry::Filters::IPv6);
+				connetionsManager.add_filter(ConnectionsTableManager::Filters::IPv6);
 			}
 			else {
-				connectionsRegistry.remove_filter(ConnectionsTableRegistry::Filters::IPv6);
+				connetionsManager.remove_filter(ConnectionsTableManager::Filters::IPv6);
 			}
 			break;
 		case IDM_EXIT:
@@ -284,7 +284,7 @@ static void CheckUncheckMenuItem(int menu_item_id, int flag) {
 static void ProcessListViewEntry(LPARAM lParam) {
 	NMLVDISPINFO* plvdi = (NMLVDISPINFO*)lParam;
 
-	auto &row = connectionsRegistry.get()[plvdi->item.iItem];
+	auto &row = connetionsManager.get()[plvdi->item.iItem];
 
 	constexpr auto BUF_LEN = 512;
 	static WCHAR buf[BUF_LEN];
@@ -382,9 +382,9 @@ static void SortColumn(LPARAM lParam) {
 		asc = true;
 	}
 
-	connectionsRegistry.sort((SortBy)pnmv->iSubItem, asc);
+	connetionsManager.sort((SortBy)pnmv->iSubItem, asc);
 
-	listView->insert_items(connectionsRegistry);
+	listView->insert_items(connetionsManager);
 
 	prev_clicked_column = pnmv->iSubItem;
 }

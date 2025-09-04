@@ -6,7 +6,7 @@
 #include <stdexcept>
 
 #include "framework.h"
-#include "libTcpSpy/ConnectionTableRegistry.hpp"
+#include "libTcpSpy/ConnectionsTableManager.hpp"
 
 class ListView {
 public:
@@ -79,11 +79,11 @@ public:
 		}
 	}
 
-	void insert_items(ConnectionsTableRegistry &reg) {
+	void insert_items(ConnectionsTableManager &mgr) {
 		ListView_DeleteAllItems(m_lv);
 		ImageList_RemoveAll(m_image_list);
 
-		if (!reg.size()) return;
+		if (!mgr.size()) return;
 
 		LVITEM item;
 		ZeroMemory(&item, sizeof(item));
@@ -94,8 +94,8 @@ public:
 		item.stateMask = 0;
 		item.iSubItem = 0;
 
-		for (int i = 0; i < reg.size(); i++) {
-			auto &row = reg.get()[i];
+		for (int i = 0; i < mgr.size(); i++) {
+			auto &row = mgr.get()[i];
 			if (row->icon() == nullptr) {
 				HICON default_icon = LoadIcon(NULL, MAKEINTRESOURCE(IDI_APPLICATION));
 				ImageList_AddIcon(m_image_list, default_icon);

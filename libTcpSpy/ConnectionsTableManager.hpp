@@ -25,7 +25,7 @@ enum class SortBy {
 
 
 
-class ConnectionsTableRegistry {
+class ConnectionsTableManager {
 public:
 	enum class Filters {
 		IPv4,
@@ -35,12 +35,12 @@ public:
 		TCP_LISTENING,
 	};
 
-	ConnectionsTableRegistry()
+	ConnectionsTableManager()
 	{
 	}
 
-	ConnectionsTableRegistry(const ConnectionsTableRegistry& ctr) = delete;
-	ConnectionsTableRegistry(ConnectionsTableRegistry&& ctr) = delete;
+	ConnectionsTableManager(const ConnectionsTableManager& ctr) = delete;
+	ConnectionsTableManager(ConnectionsTableManager&& ctr) = delete;
 
 	void update() {
 		m_tcp_table4.clear();

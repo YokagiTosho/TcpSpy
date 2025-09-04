@@ -38,7 +38,7 @@
     <ClInclude Include="Process.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ConnectionTableRegistry.hpp">
+    <ClInclude Include="ConnectionsTableManager.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Cache.hpp">
