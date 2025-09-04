@@ -79,40 +79,8 @@ public:
 		}
 	}
 
-	void insert_items(ConnectionsTableManager &mgr) {
-		ListView_DeleteAllItems(m_lv);
-		ImageList_RemoveAll(m_image_list);
-
-		if (!mgr.size()) return;
-
-		LVITEM item;
-		ZeroMemory(&item, sizeof(item));
-
-		item.pszText = LPSTR_TEXTCALLBACK;
-		item.mask = LVIF_TEXT | LVIF_STATE | LVIF_IMAGE;
-		item.state = 0;
-		item.stateMask = 0;
-		item.iSubItem = 0;
-
-		for (int i = 0; i < mgr.size(); i++) {
-			auto &row = mgr.get()[i];
-			if (row->icon() == nullptr) {
-				HICON default_icon = LoadIcon(NULL, MAKEINTRESOURCE(IDI_APPLICATION));
-				ImageList_AddIcon(m_image_list, default_icon);
-				DestroyIcon(default_icon);
-			}
-			else {
-				ImageList_AddIcon(m_image_list, row->icon());
-			}
-
-			item.iItem = i;
-			item.iImage = i;
-
-			if (ListView_InsertItem(m_lv, &item) == -1) {
-				return;
-			}
-		}
-	}
+	template<typename T>
+	void insert_items(T& src);
 
 	void resize() {
 		RECT rc;
@@ -143,5 +111,41 @@ private:
 	HIMAGELIST m_image_list;
 	DWORD m_style{ WS_TABSTOP | WS_CHILD | WS_BORDER | WS_VISIBLE | LVS_AUTOARRANGE | LVS_REPORT };
 };
+
+template<>
+void ListView::insert_items<ConnectionsTableManager>(ConnectionsTableManager &mgr) {
+	ListView_DeleteAllItems(m_lv);
+	ImageList_RemoveAll(m_image_list);
+
+	if (!mgr.size()) return;
+
+	LVITEM item;
+	ZeroMemory(&item, sizeof(item));
+
+	item.pszText = LPSTR_TEXTCALLBACK;
+	item.mask = LVIF_TEXT | LVIF_STATE | LVIF_IMAGE;
+	item.state = 0;
+	item.stateMask = 0;
+	item.iSubItem = 0;
+
+	for (int i = 0; i < mgr.size(); i++) {
+		auto& row = mgr.get()[i];
+		if (row->icon() == nullptr) {
+			HICON default_icon = LoadIcon(NULL, MAKEINTRESOURCE(IDI_APPLICATION));
+			ImageList_AddIcon(m_image_list, default_icon);
+			DestroyIcon(default_icon);
+		}
+		else {
+			ImageList_AddIcon(m_image_list, row->icon());
+		}
+
+		item.iItem = i;
+		item.iImage = i;
+
+		if (ListView_InsertItem(m_lv, &item) == -1) {
+			return;
+		}
+	}
+}
 
 #endif
