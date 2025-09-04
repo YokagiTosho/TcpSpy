@@ -10,6 +10,8 @@
 #include <string>
 
 struct Process {
+	using pointer = std::shared_ptr<Process>;
+
 	Process() {}
 
 	Process(DWORD pid)
@@ -97,6 +99,6 @@ private:
 	};
 };
 
-using ProcessPtr = std::shared_ptr<Process>;
+using ProcessPtr = Process::pointer;
 
 #endif

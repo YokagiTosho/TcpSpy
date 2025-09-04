@@ -131,6 +131,7 @@
     <ClCompile Include="libTcpSpy.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Cache.hpp" />
     <ClInclude Include="ConnectionEntry.hpp" />
     <ClInclude Include="ConnectionsTable.hpp" />
     <ClInclude Include="ConnectionTableRegistry.hpp" />

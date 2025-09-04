@@ -1,14 +1,15 @@
 #ifndef CONNECTIONS_TABLE_REGISTRY_HPP
 #define CONNECTIONS_TABLE_REGISTRY_HPP
 
-#include "ConnectionsTable.hpp"
-
 #include <unordered_set>
 #include <unordered_map>
 #include <optional>
 #include <memory>
 #include <algorithm>
 #include <functional>
+
+#include "ConnectionsTable.hpp"
+#include "Cache.hpp"
 
 enum class SortBy {
 	ProcessName,
@@ -21,6 +22,8 @@ enum class SortBy {
 	RemotePort,
 	State,
 };
+
+
 
 class ConnectionsTableRegistry {
 public:
@@ -197,23 +200,20 @@ private:
 	template<typename T>
 	void add_rows(T& table) {
 		for (const auto& row : table) {
-			DWORD proc_pid = row.dwOwningPid;
-			ProcessPtr proc_ptr;
+			DWORD pid = row.dwOwningPid;
+			std::optional<ProcessPtr> proc_ptr;
 
-			if (auto it = m_proc_cache.find(proc_pid); it != m_proc_cache.end()) {
-				// proc is in cache
-				proc_ptr = it->second;
-			}
-			else {
-				proc_ptr = std::make_shared<Process>(row.dwOwningPid);
-				if (!proc_ptr->open()) {
+			if (!(proc_ptr = m_proc_cache.get(pid))) {
+				ProcessPtr tmp = std::make_shared<Process>(pid);
+				if (!tmp->open()) {
 					continue; // do not store processes and thus ConnectionEntry
 				}
-
-				m_proc_cache[proc_pid] = proc_ptr;
+				m_proc_cache.set(pid, tmp);
+				proc_ptr = tmp;
 			}
 
-			m_rows.push_back(std::make_unique<typename T::ConnectionEntryT>(row, proc_ptr));
+			// proc_ptr always contains value, so accessing it without tests is ok
+			m_rows.push_back(std::make_unique<typename T::ConnectionEntryT>(row, *proc_ptr));
 		}
 	}
 
@@ -222,6 +222,7 @@ private:
 		bool table_updated = false;
 		TCP_TABLE_CLASS tcp_class;
 
+		// if both filters present, use TCP_TABLE_OWNER_PID_ALL
 		if (m_filters.contains(Filters::TCP_CONNECTIONS) &&
 			m_filters.contains(Filters::TCP_LISTENING)) {
 			tcp_class = TCP_TABLE_OWNER_PID_ALL;
@@ -244,6 +245,7 @@ private:
 
 	template<typename Table>
 	void update_udp_table(Table& table) {
+		// UDP only have single UDP_TABLE_CLASS that interests
 		if (m_filters.contains(Filters::UDP)) {
 			table.update(UDP_TABLE_OWNER_PID);
 			add_rows(table);
@@ -261,7 +263,7 @@ private:
 		Filters::IPv4, Filters::IPv6, Filters::TCP_CONNECTIONS,	Filters::TCP_LISTENING, Filters::UDP
 	};
 
-	std::unordered_map<DWORD, ProcessPtr> m_proc_cache{};
+	Cache<DWORD, ProcessPtr> m_proc_cache{};
 
 	bool m_updated{ false };
 };
