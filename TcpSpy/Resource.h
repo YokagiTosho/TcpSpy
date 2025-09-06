@@ -12,6 +12,14 @@
 #define IDI_SMALL                       108
 #define IDC_TCPSPY                      109
 #define IDR_MAINFRAME                   128
+#define IDD_DIALOG1                     131
+#define IDD_FINDBOX                     131
+#define IDC_EDIT1                       1000
+#define IDC_RADIO1                      1001
+#define IDC_RADIO2                      1002
+#define IDFIND                          1003
+#define IDC_LIST1                       1004
+#define IDC_COMBO1                      1005
 #define ID_VIEW_REFRESH                 32771
 #define ID_VIEW_TCP                     32772
 #define ID_TCP_LISTENER                 32773
@@ -20,6 +28,10 @@
 #define ID_VIEW_IPVERSION               32776
 #define ID_IPVERSION_IPV4               32777
 #define ID_IPVERSION_IPV6               32778
+#define ID_FINDBOX                      32779
+#define ID_FILE_FIND                    32781
+#define ID_REFRESHF5                    32782
+#define ID_QUICKEXIT                    32783
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
@@ -27,9 +39,9 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        131
-#define _APS_NEXT_COMMAND_VALUE         32779
-#define _APS_NEXT_CONTROL_VALUE         1000
+#define _APS_NEXT_RESOURCE_VALUE        132
+#define _APS_NEXT_COMMAND_VALUE         32785
+#define _APS_NEXT_CONTROL_VALUE         1006
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
 #endif

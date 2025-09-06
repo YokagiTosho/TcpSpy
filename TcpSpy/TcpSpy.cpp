@@ -23,27 +23,20 @@ static bool DisplayUDP = true;
 static bool DisplayIPv4 = true;
 static bool DisplayIPv6 = true;
 
-ATOM                MyRegisterClass(HINSTANCE hInstance);
-BOOL                InitInstance(HINSTANCE, int);
-LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
-INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
-
-enum ListViewColumns {
-	PROC_NAME,
-	PID,
-	PROTOCOL,
-	IPVERSION,
-	LOC_ADDR,
-	LOC_PORT,
-	REM_ADDR,
-	REM_PORT,
-	STATE,
-};
+ATOM             MyRegisterClass(HINSTANCE hInstance);
+BOOL             InitInstance(HINSTANCE, int);
+LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
+INT_PTR CALLBACK About(HWND, UINT, WPARAM, LPARAM);
+INT_PTR CALLBACK FindDialogCallback(HWND, UINT, WPARAM, LPARAM);
+LRESULT CALLBACK ListViewSubclassProc(HWND, UINT, WPARAM, LPARAM, UINT_PTR, DWORD_PTR);
 
 static void InitCommonCtrls();
 static void InitWSA();
 static void HandleWM_NOTIFY(LPARAM lParam);
 static void CheckUncheckMenuItem(int menu_item_id, int flag);
+static void ModFilter(ConnectionsTableManager::Filters filter, bool value);
+static void OpenFindDialog();
+static void InitListView(HWND hWnd);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
@@ -104,16 +97,6 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 	return RegisterClassExW(&wcex);
 }
 
-//
-//   FUNCTION: InitInstance(HINSTANCE, int)
-//
-//   PURPOSE: Saves instance handle and creates main window
-//
-//   COMMENTS:
-//
-//        In this function, we save the instance handle in a global variable and
-//        create and display the main program window.
-//
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
 	hInst = hInstance; // Store instance handle in our global variable
@@ -126,51 +109,21 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 		return FALSE;
 	}
 
-	
-
 	ShowWindow(hWnd, nCmdShow);
 	UpdateWindow(hWnd);
 
 	return TRUE;
 }
 
-//
-//  FUNCTION: WndProc(HWND, UINT, WPARAM, LPARAM)
-//
-//  PURPOSE: Processes messages for the main window.
-//
-//  WM_COMMAND  - process the application menu
-//  WM_PAINT    - Paint the main window
-//  WM_DESTROY  - post a quit message and return
-//
-//
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	switch (message)
 	{
-
 	case WM_CREATE:
 		// init windows that depend on main window, initialize them
-
 		Menu = GetMenu(hWnd);
 
-		listView = std::make_unique<ListView>(hWnd);
-
-		listView->init_list({
-		   L"Process name",
-		   L"PID",
-		   L"Protocol",
-		   L"IP version",
-		   L"Local address",
-		   L"Local port",
-		   L"Remote address",
-		   L"Remote port",
-		   L"State"
-			});
-
-		connetionsManager.update();
-
-		listView->insert_items(connetionsManager);
+		InitListView(hWnd);
 		break;
 	case WM_COMMAND:
 	{
@@ -180,55 +133,38 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case IDM_ABOUT:
 			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
 			break;
+		case ID_FINDBOX: /* Button from menu and shortcut */
+		case ID_FILE_FIND:
+			OpenFindDialog();
+			break;
 		case ID_VIEW_REFRESH:
+		case ID_REFRESHF5:
 			connetionsManager.update();
 			listView->insert_items(connetionsManager);
 			break;
+		// Process filters
 		case ID_TCP_LISTENER:
 			CheckUncheckMenuItem(ID_TCP_LISTENER, (DisplayTCPListeners = !DisplayTCPListeners));
-			if (DisplayTCPListeners) {
-				connetionsManager.add_filter(ConnectionsTableManager::Filters::TCP_LISTENING);
-			}
-			else {
-				connetionsManager.remove_filter(ConnectionsTableManager::Filters::TCP_LISTENING);
-			}
+			ModFilter(ConnectionsTableManager::Filters::TCP_LISTENING, DisplayTCPListeners);
 			break;
 		case ID_TCP_CONNECTED:
 			CheckUncheckMenuItem(ID_TCP_CONNECTED, (DisplayTCPConnections = !DisplayTCPConnections));
-			if (DisplayTCPConnections) {
-				connetionsManager.add_filter(ConnectionsTableManager::Filters::TCP_CONNECTIONS);
-			}
-			else {
-				connetionsManager.remove_filter(ConnectionsTableManager::Filters::TCP_CONNECTIONS);
-			}
-			break;
-		case ID_VIEW_UDP:
-			CheckUncheckMenuItem(ID_VIEW_UDP, (DisplayUDP = !DisplayUDP));
-			if (DisplayUDP) {
-				connetionsManager.add_filter(ConnectionsTableManager::Filters::UDP);
-			}
-			else {
-				connetionsManager.remove_filter(ConnectionsTableManager::Filters::UDP);
-			}
+			ModFilter(ConnectionsTableManager::Filters::TCP_CONNECTIONS, DisplayTCPConnections);
 			break;
 		case ID_IPVERSION_IPV4:
 			CheckUncheckMenuItem(ID_IPVERSION_IPV4, (DisplayIPv4 = !DisplayIPv4));
-			if (DisplayIPv4) {
-				connetionsManager.add_filter(ConnectionsTableManager::Filters::IPv4);
-			}
-			else {
-				connetionsManager.remove_filter(ConnectionsTableManager::Filters::IPv4);
-			}
+			ModFilter(ConnectionsTableManager::Filters::IPv4, DisplayIPv4);
 			break;
 		case ID_IPVERSION_IPV6:
 			CheckUncheckMenuItem(ID_IPVERSION_IPV6, (DisplayIPv6 = !DisplayIPv6));
-			if (DisplayIPv6) {
-				connetionsManager.add_filter(ConnectionsTableManager::Filters::IPv6);
-			}
-			else {
-				connetionsManager.remove_filter(ConnectionsTableManager::Filters::IPv6);
-			}
+			ModFilter(ConnectionsTableManager::Filters::IPv6, DisplayIPv6);
 			break;
+		case ID_VIEW_UDP:
+			CheckUncheckMenuItem(ID_VIEW_UDP, (DisplayUDP = !DisplayUDP));
+			ModFilter(ConnectionsTableManager::Filters::UDP, DisplayUDP);
+			break;
+		//
+		case ID_QUICKEXIT:
 		case IDM_EXIT:
 			DestroyWindow(hWnd);
 			break;
@@ -266,6 +202,28 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 			EndDialog(hDlg, LOWORD(wParam));
 			return (INT_PTR)TRUE;
 		}
+		break;
+	}
+	return (INT_PTR)FALSE;
+}
+
+INT_PTR CALLBACK FindDialogCallback(HWND hFind, UINT message, WPARAM wParam, LPARAM lParam) {
+	UNREFERENCED_PARAMETER(lParam);
+	switch (message)
+	{
+	case WM_INITDIALOG:
+		return (INT_PTR)TRUE;
+	case WM_COMMAND:
+	{
+		int id = LOWORD(wParam);
+		if (id == IDCANCEL)
+		{
+			EndDialog(hFind, LOWORD(wParam));
+			return (INT_PTR)TRUE;
+		}
+	}	
+		break;
+	case WM_KEYDOWN:
 		break;
 	}
 	return (INT_PTR)FALSE;
@@ -383,7 +341,6 @@ static void SortColumn(LPARAM lParam) {
 	}
 
 	connetionsManager.sort((SortBy)pnmv->iSubItem, asc);
-
 	listView->insert_items(connetionsManager);
 
 	prev_clicked_column = pnmv->iSubItem;
@@ -403,7 +360,51 @@ static void HandleWM_NOTIFY(LPARAM lParam) {
 	}
 }
 
+LRESULT CALLBACK ListViewSubclassProc(
+	HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam,
+	UINT_PTR uIdSubclass, DWORD_PTR dwRefData) {
+	// Proc is used to handle specific 
+	int wmId = LOWORD(wParam);
+	switch (msg)
+	{
+	case WM_COMMAND:
+		switch (wmId) {
+		case IDM_ABOUT:
+			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
+			break;
+		case ID_FINDBOX: /* Button from menu and shortcut */
+			OpenFindDialog();
+			break;
+		case ID_VIEW_REFRESH:
+		case ID_REFRESHF5:
+			connetionsManager.update();
+			listView->insert_items(connetionsManager);
+			break;
+		case ID_QUICKEXIT:
+			DestroyWindow(GetParent(hWnd)); // send exit to main window
+			break;
+		}
+
+		break;
+	}
+	return DefSubclassProc(hWnd, msg, wParam, lParam);
+}
+
+static void ModFilter(ConnectionsTableManager::Filters filter, bool value) {
+	if (value) {
+		connetionsManager.add_filter(filter);
+	}
+	else {
+		connetionsManager.remove_filter(filter);
+	}
+}
+
+static void OpenFindDialog() {
+	DialogBox(hInst, MAKEINTRESOURCE(IDD_FINDBOX), NULL, FindDialogCallback);
+}
+
 static void InitWSA() {
+	
 	WSADATA wsaData;
 	WORD wVersionRequested = MAKEWORD(2, 2);
 
@@ -411,4 +412,26 @@ static void InitWSA() {
 		std::cerr << "WSAStartup failed" << std::endl;
 		exit(1);
 	}
+}
+
+static void InitListView(HWND hWnd) {
+	listView = std::make_unique<ListView>(hWnd);
+
+	listView->set_subclass(ListViewSubclassProc);
+
+	listView->init_list({
+	   L"Process name",
+	   L"PID",
+	   L"Protocol",
+	   L"IP version",
+	   L"Local address",
+	   L"Local port",
+	   L"Remote address",
+	   L"Remote port",
+	   L"State"
+		});
+
+	connetionsManager.update();
+
+	listView->insert_items(connetionsManager);
 }

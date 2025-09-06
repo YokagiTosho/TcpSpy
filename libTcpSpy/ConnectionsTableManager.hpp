@@ -23,8 +23,6 @@ enum class SortBy {
 	State,
 };
 
-
-
 class ConnectionsTableManager {
 public:
 	enum class Filters {

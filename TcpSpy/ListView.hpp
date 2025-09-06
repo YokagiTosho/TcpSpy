@@ -8,6 +8,18 @@
 #include "framework.h"
 #include "libTcpSpy/ConnectionsTableManager.hpp"
 
+enum ListViewColumns {
+	PROC_NAME,
+	PID,
+	PROTOCOL,
+	IPVERSION,
+	LOC_ADDR,
+	LOC_PORT,
+	REM_ADDR,
+	REM_PORT,
+	STATE,
+};
+
 class ListView {
 public:
 	using pointer = std::unique_ptr<ListView>;
@@ -19,7 +31,6 @@ public:
 
 		GetClientRect(parent, &rcClient);
 
-		// Create the list-view window in report view with label editing enabled.
 		m_lv = CreateWindow(
 			WC_LISTVIEW,
 			L"",
@@ -41,10 +52,8 @@ public:
 
 	ListView(ListView&& lv) noexcept
 		: m_lv(lv.m_lv), m_parent(lv.m_parent)
-		, m_style(lv.m_style), m_inst(lv.m_inst)
-		, m_image_list(lv.m_image_list)
+		, m_style(lv.m_style), m_image_list(lv.m_image_list)
 	{
-		lv.m_inst = NULL;
 		lv.m_parent = NULL;
 		lv.m_lv = NULL;
 		lv.m_image_list = NULL;
@@ -95,6 +104,11 @@ public:
 			TRUE
 		);
 	}
+
+	template<typename F>
+	void set_subclass(F f) {
+		SetWindowSubclass(m_lv, f, 0, 0);
+	}
 private:
 	void init_image_list() {
 		m_image_list = ImageList_Create(
@@ -105,7 +119,6 @@ private:
 		ListView_SetImageList(m_lv, m_image_list, LVSIL_SMALL);
 	}
 
-	HINSTANCE m_inst;
 	HWND m_parent;
 	HWND m_lv;
 	HIMAGELIST m_image_list;
