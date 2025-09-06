@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <strsafe.h>
 
+#include <windowsx.h>
+
 #include "libTcpSpy/ConnectionsTableManager.hpp"
 #include "ListView.hpp"
 
@@ -16,6 +18,7 @@ WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
 ListView::pointer listView;
 ConnectionsTableManager connetionsManager;
 
+HWND hFindDlg;
 HMENU Menu;
 static bool DisplayTCPConnections = true;
 static bool DisplayTCPListeners = true;
@@ -37,6 +40,7 @@ static void CheckUncheckMenuItem(int menu_item_id, int flag);
 static void ModFilter(ConnectionsTableManager::Filters filter, bool value);
 static void OpenFindDialog();
 static void InitListView(HWND hWnd);
+static void InitFindDialog(HWND hWnd);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
@@ -51,6 +55,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	
 	LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
 	LoadStringW(hInstance, IDC_TCPSPY, szWindowClass, MAX_LOADSTRING);
+
 	MyRegisterClass(hInstance);
 
 	if (!InitInstance(hInstance, nCmdShow))
@@ -120,10 +125,14 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	switch (message)
 	{
 	case WM_CREATE:
+	{
 		// init windows that depend on main window, initialize them
 		Menu = GetMenu(hWnd);
 
+		InitFindDialog(hWnd);
+
 		InitListView(hWnd);
+	}
 		break;
 	case WM_COMMAND:
 	{
@@ -209,6 +218,9 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 INT_PTR CALLBACK FindDialogCallback(HWND hFind, UINT message, WPARAM wParam, LPARAM lParam) {
 	UNREFERENCED_PARAMETER(lParam);
+	constexpr int buf_len = 512;
+	static WCHAR buf[buf_len];
+
 	switch (message)
 	{
 	case WM_INITDIALOG:
@@ -216,10 +228,19 @@ INT_PTR CALLBACK FindDialogCallback(HWND hFind, UINT message, WPARAM wParam, LPA
 	case WM_COMMAND:
 	{
 		int id = LOWORD(wParam);
-		if (id == IDCANCEL)
+		switch (id) {
+		case IDFINDNEXT:
 		{
-			EndDialog(hFind, LOWORD(wParam));
+			HWND hFindInput = GetDlgItem(hFind, IDC_FINDINPUT);
+			GetWindowText(hFindInput, buf, buf_len);
+			ListViewColumns column = (ListViewColumns)ComboBox_GetCurSel(GetDlgItem(hFindDlg, IDC_SEARCHBY));
+			
+		}
+			break;
+		case IDCANCEL:
+			ShowWindow(hFind, HIDE_WINDOW);
 			return (INT_PTR)TRUE;
+			break;
 		}
 	}	
 		break;
@@ -400,11 +421,10 @@ static void ModFilter(ConnectionsTableManager::Filters filter, bool value) {
 }
 
 static void OpenFindDialog() {
-	DialogBox(hInst, MAKEINTRESOURCE(IDD_FINDBOX), NULL, FindDialogCallback);
+	ShowWindow(hFindDlg, SW_SHOW);
 }
 
 static void InitWSA() {
-	
 	WSADATA wsaData;
 	WORD wVersionRequested = MAKEWORD(2, 2);
 
@@ -434,4 +454,22 @@ static void InitListView(HWND hWnd) {
 	connetionsManager.update();
 
 	listView->insert_items(connetionsManager);
+}
+
+static void InitFindDialog(HWND hWnd) {
+	hFindDlg = CreateDialog(NULL, MAKEINTRESOURCE(IDD_FINDBOX), hWnd, FindDialogCallback);
+
+	// populate combobox
+	HWND hComboBox = GetDlgItem(hFindDlg, IDC_SEARCHBY);
+
+	for (auto str : { L"Process name", L"PID", L"Protocol", L"IP version",
+					   L"Local Address", L"Local Port", L"Remote Address", L"Remote Port" })
+	{
+		ComboBox_AddString(hComboBox, str);
+	}
+	// set process name column by default for searching against to
+	ComboBox_SetCurSel(hComboBox, ListViewColumns::PROC_NAME);
+
+	// turn radio on for 'Down'
+	CheckRadioButton(hFindDlg, IDC_RADIO1, IDC_RADIO2, IDC_RADIO2);
 }

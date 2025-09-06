@@ -15,11 +15,12 @@
 #define IDD_DIALOG1                     131
 #define IDD_FINDBOX                     131
 #define IDC_EDIT1                       1000
+#define IDC_FINDINPUT                   1000
 #define IDC_RADIO1                      1001
 #define IDC_RADIO2                      1002
 #define IDFIND                          1003
-#define IDC_LIST1                       1004
-#define IDC_COMBO1                      1005
+#define IDFINDNEXT                      1003
+#define IDC_SEARCHBY                    1005
 #define ID_VIEW_REFRESH                 32771
 #define ID_VIEW_TCP                     32772
 #define ID_TCP_LISTENER                 32773
