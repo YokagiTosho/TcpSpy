@@ -11,7 +11,7 @@
 #include "ConnectionsTable.hpp"
 #include "Cache.hpp"
 
-enum class SortBy {
+enum class Column {
 	ProcessName,
 	PID,
 	Protocol,
@@ -22,6 +22,9 @@ enum class SortBy {
 	RemotePort,
 	State,
 };
+
+using SortBy = Column;
+using SearchBy = Column;
 
 class ConnectionsTableManager {
 public:
@@ -194,6 +197,36 @@ public:
 		}
 
 	}
+
+	// Search for specific column and returns index to row.
+	// The row and column are then used to highlight a cell in listview
+	int search_by(SearchBy column, std::wstring data) {
+
+		switch (column)
+		{
+		case SearchBy::ProcessName:
+			break;
+		case SearchBy::PID:
+			break;
+		case SearchBy::Protocol:
+			break;
+		case SearchBy::INET:
+			break;
+		case SearchBy::LocalAddress:
+			break;
+		case SearchBy::LocalPort:
+			break;
+		case SearchBy::RemoteAddress:
+			break;
+		case SearchBy::RemotePort:
+			break;
+		case SearchBy::State:
+			break;
+		default:
+			break;
+		}
+		return 0;
+	}
 private:
 	template<typename T>
 	void add_rows(T& table) {
@@ -202,6 +235,7 @@ private:
 			std::optional<ProcessPtr> proc_ptr;
 
 			if (!(proc_ptr = m_proc_cache.get(pid))) {
+				// not in cache
 				ProcessPtr tmp = std::make_shared<Process>(pid);
 				if (!tmp->open()) {
 					continue; // do not store processes and thus ConnectionEntry

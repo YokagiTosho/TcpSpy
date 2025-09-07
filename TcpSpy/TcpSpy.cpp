@@ -15,16 +15,25 @@ HINSTANCE hInst;                                // current instance
 WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
 
+const std::array<std::wstring, 9> columns { 
+	L"Process name", L"PID", L"Protocol", L"IP version",
+	L"Local Address", L"Local Port", L"Remote Address", L"Remote Port", L"State"
+};
+
 ListView::pointer listView;
-ConnectionsTableManager connetionsManager;
+ConnectionsTableManager connectionsManager;
 
 HWND hFindDlg;
 HMENU Menu;
-static bool DisplayTCPConnections = true;
-static bool DisplayTCPListeners = true;
-static bool DisplayUDP = true;
-static bool DisplayIPv4 = true;
-static bool DisplayIPv6 = true;
+
+// key is ID of menu item, std::pair is filter with bool value turned on/off filter
+std::unordered_map<int, std::pair<ConnectionsTableManager::Filters, bool>> MenuFilters{
+	{ ID_TCP_LISTENER,   { ConnectionsTableManager::Filters::TCP_LISTENING,   true} },
+	{ ID_TCP_CONNECTED,  { ConnectionsTableManager::Filters::TCP_CONNECTIONS, true} },
+	{ ID_IPVERSION_IPV4, { ConnectionsTableManager::Filters::IPv4,            true} },
+	{ ID_IPVERSION_IPV6, { ConnectionsTableManager::Filters::IPv6,            true} },
+	{ ID_VIEW_UDP,       { ConnectionsTableManager::Filters::UDP,             true} }
+};
 
 ATOM             MyRegisterClass(HINSTANCE hInstance);
 BOOL             InitInstance(HINSTANCE, int);
@@ -41,6 +50,7 @@ static void ModFilter(ConnectionsTableManager::Filters filter, bool value);
 static void OpenFindDialog();
 static void InitListView(HWND hWnd);
 static void InitFindDialog(HWND hWnd);
+static void ChangeFilter(int id);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
@@ -128,9 +138,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		// init windows that depend on main window, initialize them
 		Menu = GetMenu(hWnd);
-
 		InitFindDialog(hWnd);
-
 		InitListView(hWnd);
 	}
 		break;
@@ -148,31 +156,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		case ID_VIEW_REFRESH:
 		case ID_REFRESHF5:
-			connetionsManager.update();
-			listView->insert_items(connetionsManager);
+			listView->refresh_items();
 			break;
 		// Process filters
 		case ID_TCP_LISTENER:
-			CheckUncheckMenuItem(ID_TCP_LISTENER, (DisplayTCPListeners = !DisplayTCPListeners));
-			ModFilter(ConnectionsTableManager::Filters::TCP_LISTENING, DisplayTCPListeners);
-			break;
 		case ID_TCP_CONNECTED:
-			CheckUncheckMenuItem(ID_TCP_CONNECTED, (DisplayTCPConnections = !DisplayTCPConnections));
-			ModFilter(ConnectionsTableManager::Filters::TCP_CONNECTIONS, DisplayTCPConnections);
-			break;
 		case ID_IPVERSION_IPV4:
-			CheckUncheckMenuItem(ID_IPVERSION_IPV4, (DisplayIPv4 = !DisplayIPv4));
-			ModFilter(ConnectionsTableManager::Filters::IPv4, DisplayIPv4);
-			break;
 		case ID_IPVERSION_IPV6:
-			CheckUncheckMenuItem(ID_IPVERSION_IPV6, (DisplayIPv6 = !DisplayIPv6));
-			ModFilter(ConnectionsTableManager::Filters::IPv6, DisplayIPv6);
-			break;
 		case ID_VIEW_UDP:
-			CheckUncheckMenuItem(ID_VIEW_UDP, (DisplayUDP = !DisplayUDP));
-			ModFilter(ConnectionsTableManager::Filters::UDP, DisplayUDP);
+			ChangeFilter(wmId);
+			listView->refresh_items(); // refresh items after applied filters
 			break;
-		//
 		case ID_QUICKEXIT:
 		case IDM_EXIT:
 			DestroyWindow(hWnd);
@@ -231,10 +225,11 @@ INT_PTR CALLBACK FindDialogCallback(HWND hFind, UINT message, WPARAM wParam, LPA
 		switch (id) {
 		case IDFINDNEXT:
 		{
+			// TODO check for valid column, input etc
 			HWND hFindInput = GetDlgItem(hFind, IDC_FINDINPUT);
 			GetWindowText(hFindInput, buf, buf_len);
-			ListViewColumns column = (ListViewColumns)ComboBox_GetCurSel(GetDlgItem(hFindDlg, IDC_SEARCHBY));
-			
+			Column column = (Column)ComboBox_GetCurSel(GetDlgItem(hFindDlg, IDC_SEARCHBY));
+			//connectionsManager.search_by(column, std::wstring(buf));
 		}
 			break;
 		case IDCANCEL:
@@ -260,121 +255,31 @@ static void CheckUncheckMenuItem(int menu_item_id, int flag) {
 	CheckMenuItem(Menu, menu_item_id, MF_BYCOMMAND | (flag ? MF_CHECKED : MF_UNCHECKED));
 }
 
-static void ProcessListViewEntry(LPARAM lParam) {
-	NMLVDISPINFO* plvdi = (NMLVDISPINFO*)lParam;
-
-	auto &row = connetionsManager.get()[plvdi->item.iItem];
-
-	constexpr auto BUF_LEN = 512;
-	static WCHAR buf[BUF_LEN];
-	std::wstring tmp;
-
-	switch (plvdi->item.iSubItem)
-	{
-	case ListViewColumns::PROC_NAME:
-		tmp = row->get_process_name();
-		break;
-	case ListViewColumns::PID:
-		tmp = row->pid_str();
-		break;
-	case ListViewColumns::PROTOCOL:
-		switch (row->protocol()) {
-		case ConnectionProtocol::PROTO_TCP:
-			plvdi->item.pszText = (LPWSTR)L"TCP";
-			break;
-		case ConnectionProtocol::PROTO_UDP:
-			plvdi->item.pszText = (LPWSTR)L"UDP";
-			break;
-		default:
-			assert(false);
-			break;
-		}
-		return;
-	case ListViewColumns::IPVERSION:
-		switch (row->address_family()) {
-		case ProtocolFamily::INET:
-			plvdi->item.pszText = (LPWSTR)L"IPv4";
-			break;
-		case ProtocolFamily::INET6:
-			plvdi->item.pszText = (LPWSTR)L"IPv6";
-			break;
-		}
-		return; // return so plvdi->item.pszText is not assigned at the end of function
-	case ListViewColumns::LOC_ADDR:
-		tmp = row->local_addr_str();
-		break;
-	case ListViewColumns::LOC_PORT:
-		tmp = row->local_port_str();
-		break;
-	case ListViewColumns::REM_ADDR:
-		if (auto p = dynamic_cast<ConnectionEntryTCP*>(row.get())) {
-			tmp = p->remote_addr_str();
-		}
-		else {
-			return;
-		}
-		break;
-	case ListViewColumns::REM_PORT:
-		if (auto p = dynamic_cast<ConnectionEntryTCP*>(row.get())) {
-			tmp = p->remote_port_str();
-		}
-		else {
-			return;
-		}
-		break;
-	case ListViewColumns::STATE:
-		if (auto p = dynamic_cast<ConnectionEntryTCP*>(row.get())) {
-			tmp = p->state_str();
-		}
-		else {
-			return;
-		}
-		break;
-	default:
-		return;
-	}
-
-	HRESULT res = StringCchCopyW(buf, BUF_LEN, (LPWSTR)tmp.c_str());
-
-	if (res == STRSAFE_E_INVALID_PARAMETER) {
-		throw std::invalid_argument("The value in cchDest is either 0 or larger than STRSAFE_MAX_CCH");
-	}
-
-	plvdi->item.pszText = buf;
-}
-
-static void SortColumn(LPARAM lParam) {
-	LPNMLISTVIEW pnmv = (LPNMLISTVIEW)lParam;
-
-	if (pnmv->iSubItem < 0 || pnmv->iSubItem > ListViewColumns::STATE) {
-		// out of bounds
-		return;
-	}
-
-	static DWORD prev_clicked_column = -1;
-	static bool asc = true;
-
-	if (prev_clicked_column == pnmv->iSubItem) {
-		asc = !asc;
-	}
-	else {
-		asc = true;
-	}
-
-	connetionsManager.sort((SortBy)pnmv->iSubItem, asc);
-	listView->insert_items(connetionsManager);
-
-	prev_clicked_column = pnmv->iSubItem;
+static void ChangeFilter(int id) {
+	auto& flag = MenuFilters[id].second;
+	CheckUncheckMenuItem(id, (flag = !flag));
+	ModFilter(MenuFilters[id].first, flag);
 }
 
 static void HandleWM_NOTIFY(LPARAM lParam) {
 	switch (((NMHDR*)lParam)->code)
 	{
 	case LVN_GETDISPINFO:
-		ProcessListViewEntry(lParam);
+	{
+		NMLVDISPINFO* plvdi = (NMLVDISPINFO*)lParam;
+		plvdi->item.pszText = listView->draw_column(plvdi->item.iItem, (Column)plvdi->item.iSubItem);
+	}
 		break;
 	case LVN_COLUMNCLICK:
-		SortColumn(lParam);
+	{
+		LPNMLISTVIEW pnmv = (LPNMLISTVIEW)lParam;
+
+		Column col = (Column)pnmv->iSubItem;
+
+		if (col >= Column::ProcessName && col <= Column::State) {
+			listView->sort_column(col);
+		}
+	}
 		break;
 	case NM_RCLICK:
 		break;
@@ -398,8 +303,7 @@ LRESULT CALLBACK ListViewSubclassProc(
 			break;
 		case ID_VIEW_REFRESH:
 		case ID_REFRESHF5:
-			connetionsManager.update();
-			listView->insert_items(connetionsManager);
+			listView->refresh_items();
 			break;
 		case ID_QUICKEXIT:
 			DestroyWindow(GetParent(hWnd)); // send exit to main window
@@ -413,10 +317,10 @@ LRESULT CALLBACK ListViewSubclassProc(
 
 static void ModFilter(ConnectionsTableManager::Filters filter, bool value) {
 	if (value) {
-		connetionsManager.add_filter(filter);
+		connectionsManager.add_filter(filter);
 	}
 	else {
-		connetionsManager.remove_filter(filter);
+		connectionsManager.remove_filter(filter);
 	}
 }
 
@@ -435,25 +339,13 @@ static void InitWSA() {
 }
 
 static void InitListView(HWND hWnd) {
-	listView = std::make_unique<ListView>(hWnd);
+	listView = std::make_unique<ListView>(hWnd, connectionsManager);
 
 	listView->set_subclass(ListViewSubclassProc);
 
-	listView->init_list({
-	   L"Process name",
-	   L"PID",
-	   L"Protocol",
-	   L"IP version",
-	   L"Local address",
-	   L"Local port",
-	   L"Remote address",
-	   L"Remote port",
-	   L"State"
-		});
+	listView->init_list(columns);
 
-	connetionsManager.update();
-
-	listView->insert_items(connetionsManager);
+	listView->refresh_items();
 }
 
 static void InitFindDialog(HWND hWnd) {
@@ -462,13 +354,12 @@ static void InitFindDialog(HWND hWnd) {
 	// populate combobox
 	HWND hComboBox = GetDlgItem(hFindDlg, IDC_SEARCHBY);
 
-	for (auto str : { L"Process name", L"PID", L"Protocol", L"IP version",
-					   L"Local Address", L"Local Port", L"Remote Address", L"Remote Port" })
+	for (auto str : columns)
 	{
-		ComboBox_AddString(hComboBox, str);
+		ComboBox_AddString(hComboBox, str.c_str());
 	}
 	// set process name column by default for searching against to
-	ComboBox_SetCurSel(hComboBox, ListViewColumns::PROC_NAME);
+	ComboBox_SetCurSel(hComboBox, Column::ProcessName);
 
 	// turn radio on for 'Down'
 	CheckRadioButton(hFindDlg, IDC_RADIO1, IDC_RADIO2, IDC_RADIO2);

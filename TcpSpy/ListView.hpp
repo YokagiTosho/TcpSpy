@@ -8,24 +8,12 @@
 #include "framework.h"
 #include "libTcpSpy/ConnectionsTableManager.hpp"
 
-enum ListViewColumns {
-	PROC_NAME,
-	PID,
-	PROTOCOL,
-	IPVERSION,
-	LOC_ADDR,
-	LOC_PORT,
-	REM_ADDR,
-	REM_PORT,
-	STATE,
-};
-
 class ListView {
 public:
 	using pointer = std::unique_ptr<ListView>;
 
-	ListView(HWND parent)
-		: m_parent(parent)
+	ListView(HWND parent, ConnectionsTableManager &tblmngr)
+		: m_parent(parent), m_mgr(tblmngr)
 	{
 		RECT rcClient;
 
@@ -52,7 +40,7 @@ public:
 
 	ListView(ListView&& lv) noexcept
 		: m_lv(lv.m_lv), m_parent(lv.m_parent)
-		, m_style(lv.m_style), m_image_list(lv.m_image_list)
+		, m_style(lv.m_style), m_image_list(lv.m_image_list), m_mgr(lv.m_mgr)
 	{
 		lv.m_parent = NULL;
 		lv.m_lv = NULL;
@@ -66,7 +54,9 @@ public:
 	}
 
 	// initializes imagelist's columns, their width, etc...
-	void init_list(const std::vector<std::wstring>& columns) {
+	// Sequence is an iterable sequence of std::wstring elements
+	template<typename Sequence>
+	void init_list(const Sequence &columns) {
 		if (columns.empty()) {
 			throw std::runtime_error("Empty columns passed");
 		}
@@ -88,8 +78,100 @@ public:
 		}
 	}
 
-	template<typename T>
-	void insert_items(T& src);
+	void refresh_items() {
+		m_mgr.update();
+		insert_items();
+	}
+
+	LPWSTR draw_column(int item, Column col) {
+		auto& row = m_mgr.get()[item];
+
+		constexpr auto BUF_LEN = 512;
+		static WCHAR buf[BUF_LEN];
+		std::wstring tmp;
+
+		switch (col)
+		{
+		case Column::ProcessName:
+			tmp = row->get_process_name();
+			break;
+		case Column::PID:
+			tmp = row->pid_str();
+			break;
+		case Column::Protocol:
+			switch (row->protocol()) {
+			case ConnectionProtocol::PROTO_TCP: return (LPWSTR)L"TCP";
+			case ConnectionProtocol::PROTO_UDP: return (LPWSTR)L"UDP";
+			default:
+				assert(false);
+				break;
+			}
+			break;
+		case Column::INET:
+			switch (row->address_family()) {
+			case ProtocolFamily::INET:  return (LPWSTR)L"IPv4";
+			case ProtocolFamily::INET6: return (LPWSTR)L"IPv6";
+			}
+			break;
+		case Column::LocalAddress:
+			tmp = row->local_addr_str();
+			break;
+		case Column::LocalPort:
+			tmp = row->local_port_str();
+			break;
+		case Column::RemoteAddress:
+			if (auto p = dynamic_cast<ConnectionEntryTCP*>(row.get())) {
+				tmp = p->remote_addr_str();
+			}
+			else {
+				return nullptr;
+			}
+			break;
+		case Column::RemotePort:
+			if (auto p = dynamic_cast<ConnectionEntryTCP*>(row.get())) {
+				tmp = p->remote_port_str();
+			}
+			else {
+				return nullptr;
+			}
+			break;
+		case Column::State:
+			if (auto p = dynamic_cast<ConnectionEntryTCP*>(row.get())) {
+				tmp = p->state_str();
+			}
+			else {
+				return nullptr;
+			}
+			break;
+		default:
+			return nullptr;
+		}
+
+		HRESULT res = StringCchCopyW(buf, BUF_LEN, (LPWSTR)tmp.c_str());
+
+		if (res == STRSAFE_E_INVALID_PARAMETER) {
+			throw std::invalid_argument("The value in cchDest is either 0 or larger than STRSAFE_MAX_CCH");
+		}
+
+		return buf;
+	}
+
+	void sort_column(Column col) {
+		static Column prev_clicked_column{};
+		static bool asc = true;
+
+		if (prev_clicked_column == col) {
+			asc = !asc;
+		}
+		else {
+			asc = true;
+		}
+
+		m_mgr.sort(col, asc);
+		insert_items();
+
+		prev_clicked_column = col;
+	}
 
 	void resize() {
 		RECT rc;
@@ -119,46 +201,46 @@ private:
 		ListView_SetImageList(m_lv, m_image_list, LVSIL_SMALL);
 	}
 
+	void insert_items() {
+		ListView_DeleteAllItems(m_lv);
+		ImageList_RemoveAll(m_image_list);
+
+		if (!m_mgr.size()) return;
+
+		LVITEM item;
+		ZeroMemory(&item, sizeof(item));
+
+		item.pszText = LPSTR_TEXTCALLBACK;
+		item.mask = LVIF_TEXT | LVIF_STATE | LVIF_IMAGE;
+		item.state = 0;
+		item.stateMask = 0;
+		item.iSubItem = 0;
+
+		for (int i = 0; i < m_mgr.size(); i++) {
+			auto& row = m_mgr.get()[i];
+			if (row->icon() == nullptr) {
+				HICON default_icon = LoadIcon(NULL, MAKEINTRESOURCE(IDI_APPLICATION));
+				ImageList_AddIcon(m_image_list, default_icon);
+				DestroyIcon(default_icon);
+			}
+			else {
+				ImageList_AddIcon(m_image_list, row->icon());
+			}
+
+			item.iItem = i;
+			item.iImage = i;
+
+			if (ListView_InsertItem(m_lv, &item) == -1) {
+				return;
+			}
+		}
+	}
+
 	HWND m_parent;
 	HWND m_lv;
 	HIMAGELIST m_image_list;
+	ConnectionsTableManager& m_mgr;
 	DWORD m_style{ WS_TABSTOP | WS_CHILD | WS_BORDER | WS_VISIBLE | LVS_AUTOARRANGE | LVS_REPORT };
 };
-
-template<>
-void ListView::insert_items<ConnectionsTableManager>(ConnectionsTableManager &mgr) {
-	ListView_DeleteAllItems(m_lv);
-	ImageList_RemoveAll(m_image_list);
-
-	if (!mgr.size()) return;
-
-	LVITEM item;
-	ZeroMemory(&item, sizeof(item));
-
-	item.pszText = LPSTR_TEXTCALLBACK;
-	item.mask = LVIF_TEXT | LVIF_STATE | LVIF_IMAGE;
-	item.state = 0;
-	item.stateMask = 0;
-	item.iSubItem = 0;
-
-	for (int i = 0; i < mgr.size(); i++) {
-		auto& row = mgr.get()[i];
-		if (row->icon() == nullptr) {
-			HICON default_icon = LoadIcon(NULL, MAKEINTRESOURCE(IDI_APPLICATION));
-			ImageList_AddIcon(m_image_list, default_icon);
-			DestroyIcon(default_icon);
-		}
-		else {
-			ImageList_AddIcon(m_image_list, row->icon());
-		}
-
-		item.iItem = i;
-		item.iImage = i;
-
-		if (ListView_InsertItem(m_lv, &item) == -1) {
-			return;
-		}
-	}
-}
 
 #endif
