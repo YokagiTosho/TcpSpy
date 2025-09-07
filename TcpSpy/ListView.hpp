@@ -34,6 +34,8 @@ public:
 		ListView_SetExtendedListViewStyle(m_lv, LVS_EX_AUTOSIZECOLUMNS | LVS_EX_FULLROWSELECT);
 
 		init_image_list();
+
+		SetFocus(m_lv);
 	};
 
 	ListView(const ListView& lv) = delete;
@@ -193,6 +195,68 @@ public:
 	void set_subclass(F f) {
 		SetWindowSubclass(m_lv, f, 0, 0);
 	}
+
+	void search(LPCWCHAR find_buf, SearchBy column, bool search_downwards) const {
+		constexpr int buf_len = 512;
+		static WCHAR cell_buf[buf_len];
+
+		int row_count = ListView_GetItemCount(m_lv);
+		static int index = -1; // should be saved for consequence calls
+		int i;
+
+		if (search_downwards) {
+			if (index != -1 && index != row_count - 1) {
+				i = index + 1;
+			}
+			else {
+				i = 0;
+			}
+		}
+		else {
+			if (index != -1 && index != 0) {
+				i = index - 1;
+			}
+			else {
+				i = row_count - 1;
+			}
+		}
+
+		for (;
+			search_downwards ? (i < row_count) : (i >= 0);
+			search_downwards ? i++ : i--
+			) 
+		{
+			ListView_GetItemText(m_lv, i, (int)column, cell_buf, buf_len);
+
+			// make case-insensitive search, maybe add case insensitive/sensitive search option
+			int cell_buf_len = CharLowerBuffW(cell_buf, buf_len);
+
+			LPCWSTR p1 = find_buf, p2 = cell_buf;
+
+			while (*p1 == *p2) { p1++; p2++; }
+
+			if (!*p1) {
+				// whole find_buf string matched
+				index = i;
+				break;
+			}
+			else {
+				index = -1;
+			}
+		}
+
+		// didnt find just return
+		if (index == -1) {
+			return;
+		}
+
+		// clear selected rows if any
+		ListView_SetItemState(m_lv, -1, LVIS_SELECTED ^ LVIS_SELECTED, LVIS_SELECTED);
+
+		ListView_SetItemState(m_lv, index, LVIS_SELECTED, LVIS_SELECTED);
+		ListView_EnsureVisible(m_lv, index, TRUE); // scroll list view if d
+	}
+
 private:
 	void init_image_list() {
 		m_image_list = ImageList_Create(

@@ -11,14 +11,11 @@
 #define IDI_TCPSPY                      107
 #define IDI_SMALL                       108
 #define IDC_TCPSPY                      109
-#define IDR_MAINFRAME                   128
-#define IDD_DIALOG1                     131
 #define IDD_FINDBOX                     131
 #define IDC_EDIT1                       1000
 #define IDC_FINDINPUT                   1000
 #define IDC_RADIO1                      1001
 #define IDC_RADIO2                      1002
-#define IDFIND                          1003
 #define IDFINDNEXT                      1003
 #define IDC_SEARCHBY                    1005
 #define ID_VIEW_REFRESH                 32771
@@ -42,7 +39,7 @@
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        132
 #define _APS_NEXT_COMMAND_VALUE         32785
-#define _APS_NEXT_CONTROL_VALUE         1006
+#define _APS_NEXT_CONTROL_VALUE         1007
 #define _APS_NEXT_SYMED_VALUE           110
 #endif
 #endif
