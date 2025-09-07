@@ -278,11 +278,7 @@ static void DialogFindRow(HWND hFind) {
 	}
 
 	// clear selected rows if any
-	int selected_row = -1;
-	while ((selected_row = ListView_GetNextItem(listView->hwnd(), selected_row, LVNI_SELECTED)) != -1) {
-		// xor mask
-		ListView_SetItemState(listView->hwnd(), -1, LVIS_SELECTED ^ LVIS_SELECTED, LVIS_SELECTED);
-	}
+	ListView_SetItemState(listView->hwnd(), -1, LVIS_SELECTED ^ LVIS_SELECTED, LVIS_SELECTED);
 
 	// highlight found row
 	ListView_SetItemState(listView->hwnd(), index, LVIS_SELECTED, LVIS_SELECTED);
@@ -291,7 +287,6 @@ static void DialogFindRow(HWND hFind) {
 INT_PTR CALLBACK FindDialogCallback(HWND hFind, UINT message, WPARAM wParam, LPARAM lParam) {
 	UNREFERENCED_PARAMETER(lParam);
 	
-
 	switch (message)
 	{
 	case WM_INITDIALOG:
