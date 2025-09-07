@@ -2,9 +2,6 @@
 #include "TcpSpy.h"
 
 #include <algorithm>
-#include <strsafe.h>
-
-#include <windowsx.h>
 
 #include "libTcpSpy/ConnectionsTableManager.hpp"
 #include "ListView.hpp"
@@ -210,10 +207,90 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 	return (INT_PTR)FALSE;
 }
 
+static void DialogFindRow(HWND hFind) {
+	constexpr int buf_len = 512;
+	static WCHAR find_buf[buf_len];
+	static WCHAR cell_buf[buf_len];
+	Column column;
+	HWND hFindInput;
+	bool search_downwards;
+
+	search_downwards = IsDlgButtonChecked(hFind, IDC_RADIO2) ? true : false;
+
+	column = (Column)ComboBox_GetCurSel(GetDlgItem(hFind, IDC_SEARCHBY));
+
+	if (column < Column::ProcessName || column > Column::State) {
+		return;
+	}
+
+	hFindInput = GetDlgItem(hFind, IDC_FINDINPUT);
+	int find_buf_len = GetWindowText(hFindInput, find_buf, buf_len);
+	if (!find_buf_len) {
+		return;
+	}
+
+	CharLowerBuffW(find_buf, find_buf_len);
+	
+	int row_count = ListView_GetItemCount(listView->hwnd());
+	static int index = -1; // should be saved for consequence calls
+	int i;
+	
+	if (search_downwards) {
+		if (index != -1 && index != row_count - 1) {
+			i = index + 1;
+		}
+		else {
+			i = 0;
+		}
+	}
+	else {
+		if (index != -1 && index != 0) {
+			i = index - 1;
+		}
+		else {
+			i = row_count - 1;
+		}
+	}
+
+	for (; search_downwards ? (i < row_count) : (i >= 0); search_downwards ? i++ : i--) {
+		ListView_GetItemText(listView->hwnd(), i, (int)column, cell_buf, buf_len);
+
+		// make case-insensitive search, maybe add case insensitive/sensitive search option
+		int cell_buf_len = CharLowerBuffW(cell_buf, buf_len);
+
+		LPCWSTR p1 = find_buf, p2 = cell_buf;
+
+		while (*p1 == *p2) { p1++; p2++; }
+
+		if (!*p1) {
+			// whole find_buf string matched
+			index = i;
+			break;
+		}
+		else {
+			index = -1;
+		}
+	}
+
+	// didnt find just return
+	if (index == -1) {
+		return;
+	}
+
+	// clear selected rows if any
+	int selected_row = -1;
+	while ((selected_row = ListView_GetNextItem(listView->hwnd(), selected_row, LVNI_SELECTED)) != -1) {
+		// xor mask
+		ListView_SetItemState(listView->hwnd(), -1, LVIS_SELECTED ^ LVIS_SELECTED, LVIS_SELECTED);
+	}
+
+	// highlight found row
+	ListView_SetItemState(listView->hwnd(), index, LVIS_SELECTED, LVIS_SELECTED);
+}
+
 INT_PTR CALLBACK FindDialogCallback(HWND hFind, UINT message, WPARAM wParam, LPARAM lParam) {
 	UNREFERENCED_PARAMETER(lParam);
-	constexpr int buf_len = 512;
-	static WCHAR buf[buf_len];
+	
 
 	switch (message)
 	{
@@ -224,13 +301,7 @@ INT_PTR CALLBACK FindDialogCallback(HWND hFind, UINT message, WPARAM wParam, LPA
 		int id = LOWORD(wParam);
 		switch (id) {
 		case IDFINDNEXT:
-		{
-			// TODO check for valid column, input etc
-			HWND hFindInput = GetDlgItem(hFind, IDC_FINDINPUT);
-			GetWindowText(hFindInput, buf, buf_len);
-			Column column = (Column)ComboBox_GetCurSel(GetDlgItem(hFindDlg, IDC_SEARCHBY));
-			//connectionsManager.search_by(column, std::wstring(buf));
-		}
+			DialogFindRow(hFind);
 			break;
 		case IDCANCEL:
 			ShowWindow(hFind, HIDE_WINDOW);
@@ -267,7 +338,7 @@ static void HandleWM_NOTIFY(LPARAM lParam) {
 	case LVN_GETDISPINFO:
 	{
 		NMLVDISPINFO* plvdi = (NMLVDISPINFO*)lParam;
-		plvdi->item.pszText = listView->draw_column(plvdi->item.iItem, (Column)plvdi->item.iSubItem);
+		plvdi->item.pszText = listView->draw_cell(plvdi->item.iItem, (Column)plvdi->item.iSubItem);
 	}
 		break;
 	case LVN_COLUMNCLICK:
@@ -354,8 +425,7 @@ static void InitFindDialog(HWND hWnd) {
 	// populate combobox
 	HWND hComboBox = GetDlgItem(hFindDlg, IDC_SEARCHBY);
 
-	for (auto str : columns)
-	{
+	for (auto &str : columns) {
 		ComboBox_AddString(hComboBox, str.c_str());
 	}
 	// set process name column by default for searching against to

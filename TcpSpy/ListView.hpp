@@ -49,6 +49,8 @@ public:
 		lv.m_style = 0;
 	}
 
+	HWND hwnd() const { return m_lv; }
+
 	~ListView() {
 		// i think destroying handles is not neccessary, because lifetime of listview is as long as main program's lifetime
 	}
@@ -83,7 +85,7 @@ public:
 		insert_items();
 	}
 
-	LPWSTR draw_column(int item, Column col) {
+	LPWSTR draw_cell(int item, Column col) {
 		auto& row = m_mgr.get()[item];
 
 		constexpr auto BUF_LEN = 512;
@@ -240,7 +242,7 @@ private:
 	HWND m_lv;
 	HIMAGELIST m_image_list;
 	ConnectionsTableManager& m_mgr;
-	DWORD m_style{ WS_TABSTOP | WS_CHILD | WS_BORDER | WS_VISIBLE | LVS_AUTOARRANGE | LVS_REPORT };
+	DWORD m_style{ WS_TABSTOP | WS_CHILD | WS_BORDER | WS_VISIBLE | LVS_AUTOARRANGE | LVS_REPORT | LVS_SHOWSELALWAYS };
 };
 
 #endif

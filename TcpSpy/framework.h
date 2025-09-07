@@ -12,6 +12,8 @@
 
 #include <commctrl.h>
 #include <shellapi.h>
+#include <strsafe.h>
+#include <windowsx.h>
 
 // use this directive for modern style listview look
 #pragma comment(linker,"\"/manifestdependency:type='win32' \
