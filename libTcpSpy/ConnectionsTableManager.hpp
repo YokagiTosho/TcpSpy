@@ -126,6 +126,11 @@ public:
 			else           return a > b;
 			};
 
+		auto bothTcp = [](const ConnectionEntryPtr& a, const ConnectionEntryPtr& b) {
+			return a->protocol() == ConnectionProtocol::PROTO_TCP &&
+				b->protocol() == ConnectionProtocol::PROTO_TCP;
+			};
+
 		switch (sort_by)
 		{
 		case SortBy::ProcessName:
@@ -160,9 +165,8 @@ public:
 			break;
 		// TCP rows can be compared, while UDP rows do not have remote addr, remote port, state
 		case SortBy::RemoteAddress:
-			std::sort(beg, m_rows.end(), [&cmpFun](const ConnectionEntryPtr& a, const ConnectionEntryPtr& b) {
-				if (a->protocol() == ConnectionProtocol::PROTO_TCP &&
-					b->protocol() == ConnectionProtocol::PROTO_TCP)
+			std::sort(beg, m_rows.end(), [&cmpFun, &bothTcp](const ConnectionEntryPtr& a, const ConnectionEntryPtr& b) {
+				if (bothTcp(a, b))
 					return cmpFun(
 						dynamic_cast<ConnectionEntryTCP*>(a.get())->remote_addr_str(),
 						dynamic_cast<ConnectionEntryTCP*>(b.get())->remote_addr_str()
@@ -171,9 +175,8 @@ public:
 				});
 			break;
 		case SortBy::RemotePort:
-			std::sort(beg, m_rows.end(), [&cmpFun](const ConnectionEntryPtr& a, const ConnectionEntryPtr& b) {
-				if (a->protocol() == ConnectionProtocol::PROTO_TCP &&
-					b->protocol() == ConnectionProtocol::PROTO_TCP) 
+			std::sort(beg, m_rows.end(), [&cmpFun, &bothTcp](const ConnectionEntryPtr& a, const ConnectionEntryPtr& b) {
+				if (bothTcp(a, b)) 
 					return cmpFun(
 						dynamic_cast<ConnectionEntryTCP*>(a.get())->remote_port(),
 						dynamic_cast<ConnectionEntryTCP*>(b.get())->remote_port()
@@ -182,9 +185,8 @@ public:
 				});
 			break;
 		case SortBy::State:
-			std::sort(beg, m_rows.end(), [&cmpFun](const ConnectionEntryPtr& a, const ConnectionEntryPtr& b) {
-				if (a->protocol() == ConnectionProtocol::PROTO_TCP &&
-					b->protocol() == ConnectionProtocol::PROTO_TCP)
+			std::sort(beg, m_rows.end(), [&cmpFun, &bothTcp](const ConnectionEntryPtr& a, const ConnectionEntryPtr& b) {
+				if (bothTcp(a, b))
 					return cmpFun(
 						dynamic_cast<ConnectionEntryTCP*>(a.get())->state(),
 						dynamic_cast<ConnectionEntryTCP*>(b.get())->state()
@@ -196,36 +198,6 @@ public:
 			break;
 		}
 
-	}
-
-	// Search for specific column and returns index to row.
-	// The row and column are then used to highlight a cell in listview
-	int search_by(SearchBy column, std::wstring data) {
-
-		switch (column)
-		{
-		case SearchBy::ProcessName:
-			break;
-		case SearchBy::PID:
-			break;
-		case SearchBy::Protocol:
-			break;
-		case SearchBy::INET:
-			break;
-		case SearchBy::LocalAddress:
-			break;
-		case SearchBy::LocalPort:
-			break;
-		case SearchBy::RemoteAddress:
-			break;
-		case SearchBy::RemotePort:
-			break;
-		case SearchBy::State:
-			break;
-		default:
-			break;
-		}
-		return 0;
 	}
 private:
 	template<typename T>
