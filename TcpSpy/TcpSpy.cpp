@@ -276,7 +276,7 @@ static void CheckUncheckMenuItem(int menu_item_id, int flag) {
 }
 
 static void ChangeFilter(int id) {
-	auto& flag = MenuFilters[id].second;
+	bool& flag = MenuFilters[id].second;
 	CheckUncheckMenuItem(id, (flag = !flag));
 	ModFilter(MenuFilters[id].first, flag);
 }
@@ -293,7 +293,6 @@ static void HandleWM_NOTIFY(LPARAM lParam) {
 	case LVN_COLUMNCLICK:
 	{
 		LPNMLISTVIEW pnmv = (LPNMLISTVIEW)lParam;
-
 		Column col = (Column)pnmv->iSubItem;
 
 		if (col >= Column::ProcessName && col <= Column::State) {
@@ -302,6 +301,7 @@ static void HandleWM_NOTIFY(LPARAM lParam) {
 	}
 		break;
 	case NM_RCLICK:
+		listView->show_popup();
 		break;
 	}
 }
@@ -375,7 +375,7 @@ static void InitFindDialog(HWND hWnd) {
 	// populate combobox
 	HWND hComboBox = GetDlgItem(hFindDlg, IDC_SEARCHBY);
 
-	for (auto &str : columns) {
+	for (const auto &str : columns) {
 		ComboBox_AddString(hComboBox, str.c_str());
 	}
 	// set process name column by default for searching against to
