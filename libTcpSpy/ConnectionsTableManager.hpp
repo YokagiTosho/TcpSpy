@@ -82,6 +82,14 @@ public:
 		return m_rows.end();
 	}
 
+	ConnectionEntryPtrs::value_type& operator[](int i) {
+		return m_rows[i];
+	}
+
+	const ConnectionEntryPtrs::value_type& operator[](int i) const {
+		return m_rows[i];
+	}
+
 	void add_filter(Filters filter) {
 		m_filters.insert(filter);
 	}

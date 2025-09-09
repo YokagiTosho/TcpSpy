@@ -30,6 +30,12 @@
     <ClInclude Include="ListView.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="PopupMenu.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Shell.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TcpSpy.cpp">

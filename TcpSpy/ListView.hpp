@@ -7,6 +7,8 @@
 
 #include "framework.h"
 #include "libTcpSpy/ConnectionsTableManager.hpp"
+#include "PopupMenu.hpp"
+#include "Shell.hpp"
 
 class ListView {
 public:
@@ -36,13 +38,16 @@ public:
 		init_image_list();
 
 		SetFocus(m_lv);
+
+		m_popup_menu.insert_items({ L"Properties" });
 	};
 
 	ListView(const ListView& lv) = delete;
 
 	ListView(ListView&& lv) noexcept
 		: m_lv(lv.m_lv), m_parent(lv.m_parent)
-		, m_style(lv.m_style), m_image_list(lv.m_image_list), m_mgr(lv.m_mgr)
+		, m_style(lv.m_style), m_image_list(lv.m_image_list)
+		, m_mgr(lv.m_mgr), m_popup_menu(std::move(lv.m_popup_menu))
 	{
 		lv.m_parent = NULL;
 		lv.m_lv = NULL;
@@ -50,8 +55,6 @@ public:
 
 		lv.m_style = 0;
 	}
-
-	HWND hwnd() const { return m_lv; }
 
 	~ListView() {
 		// i think destroying handles is not neccessary, because lifetime of listview is as long as main program's lifetime
@@ -88,7 +91,7 @@ public:
 	}
 
 	LPWSTR draw_cell(int item, Column col) {
-		auto& row = m_mgr.get()[item];
+		const auto& row = m_mgr[item];
 
 		constexpr int BUF_LEN = 512;
 		static WCHAR buf[BUF_LEN];
@@ -251,39 +254,20 @@ public:
 		}
 
 		// clear selected rows if any
-		ListView_SetItemState(m_lv, -1, LVIS_SELECTED ^ LVIS_SELECTED, LVIS_SELECTED);
+		ListView_SetItemState(m_lv, -1, 0, LVIS_SELECTED);
 
 		ListView_SetItemState(m_lv, index, LVIS_SELECTED, LVIS_SELECTED);
-		ListView_EnsureVisible(m_lv, index, TRUE); // scroll list view if d
+		ListView_EnsureVisible(m_lv, index, TRUE); // scroll list view
 	}
+
+	HWND hwnd() const { return m_lv; }
 
 	void show_popup() {
 		POINT pt;
 
 		GetCursorPos(&pt);
 
-		HMENU hPopupMenu = CreatePopupMenu();
-
-		MENUITEMINFO menu_info{};
-		menu_info.cbSize = sizeof(menu_info);
-		menu_info.fMask = MIIM_STRING | MIIM_ID;
-
-		std::vector<std::wstring> popup_menu_items{ L"Properties" };
-
-		// populate popup menu
-		int item_id = 1;
-		for (const auto& item : popup_menu_items) {
-			menu_info.dwTypeData = (LPWSTR)item.c_str();
-			menu_info.cch = item.size();
-			menu_info.wID = item_id;
-
-			InsertMenuItem(hPopupMenu, item_id, false, &menu_info);
-
-			item_id++;
-		}
-
-		int cmd = TrackPopupMenuEx(hPopupMenu, TPM_LEFTALIGN | TPM_RETURNCMD | TPM_LEFTBUTTON, pt.x, pt.y, m_lv, NULL);
-		DestroyMenu(hPopupMenu);
+		int cmd = m_popup_menu.show(m_lv, pt.x, pt.y);
 
 		if (!cmd && GetLastError()) {
 			// error occured or item is not selected
@@ -293,19 +277,13 @@ public:
 		switch (cmd) {
 		case 1:
 		{
-			// if region is selected and right mouse button is pressed, choose the first process
+			// if region is selected and right mouse button is pressed, choose the first selected row
 			int selected_row = ListView_GetNextItem(m_lv, -1, LVNI_SELECTED);
 
-			const auto& proc_path = m_mgr.get()[selected_row]->proc().m_path;
+			const auto& proc_path = m_mgr[selected_row]->proc().m_path;
 
-			SHELLEXECUTEINFO sei{};
-			sei.cbSize = { sizeof(SHELLEXECUTEINFO) };
-			sei.fMask = SEE_MASK_INVOKEIDLIST;
-			sei.hwnd = m_lv;
-			sei.lpVerb = L"properties";
-			sei.lpFile = proc_path.c_str();
-
-			ShellExecuteEx(&sei);
+			// start windows' 'properites' window
+			Shell::Properties(m_lv, proc_path.c_str());
 		}
 		break;
 		}
@@ -361,6 +339,7 @@ private:
 	HIMAGELIST m_image_list;
 	ConnectionsTableManager& m_mgr;
 	DWORD m_style{ WS_TABSTOP | WS_CHILD | WS_BORDER | WS_VISIBLE | LVS_AUTOARRANGE | LVS_REPORT | LVS_SHOWSELALWAYS };
+	PopupMenu m_popup_menu;
 };
 
 #endif

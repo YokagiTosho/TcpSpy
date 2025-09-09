@@ -131,7 +131,9 @@
   <ItemGroup>
     <ClInclude Include="framework.h" />
     <ClInclude Include="ListView.hpp" />
+    <ClInclude Include="PopupMenu.hpp" />
     <ClInclude Include="Resource.h" />
+    <ClInclude Include="Shell.hpp" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="TcpSpy.h" />
   </ItemGroup>
