@@ -17,14 +17,14 @@ public:
 		m_menu_info.fMask = MIIM_STRING | MIIM_ID;
 	}
 
-	PopupMenu(PopupMenu &&pm)
+	PopupMenu(PopupMenu &&pm) noexcept
 		: m_menu(pm.m_menu), m_menu_info(pm.m_menu_info)
 	{
 		pm.m_menu = NULL;
 	}
 
 	void insert_items(const std::vector<std::wstring> &items) {
-		static int item_id = 1; // item_id for next item
+		int item_id = 1;
 
 		for (const auto& item : items) {
 			m_menu_info.dwTypeData = (LPWSTR)item.c_str();

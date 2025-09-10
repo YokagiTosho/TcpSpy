@@ -301,8 +301,13 @@ static void HandleWM_NOTIFY(LPARAM lParam) {
 	}
 		break;
 	case NM_RCLICK:
-		listView->show_popup();
-		break;
+	{
+		POINT pt;
+		GetCursorPos(&pt);
+
+		listView->show_popup(pt);
+	}
+	break;
 	}
 }
 

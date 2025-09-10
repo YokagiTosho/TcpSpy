@@ -39,7 +39,6 @@ public:
 
 		SetFocus(m_lv);
 
-		m_popup_menu.insert_items({ L"Properties" });
 	};
 
 	ListView(const ListView& lv) = delete;
@@ -47,7 +46,7 @@ public:
 	ListView(ListView&& lv) noexcept
 		: m_lv(lv.m_lv), m_parent(lv.m_parent)
 		, m_style(lv.m_style), m_image_list(lv.m_image_list)
-		, m_mgr(lv.m_mgr), m_popup_menu(std::move(lv.m_popup_menu))
+		, m_mgr(lv.m_mgr)
 	{
 		lv.m_parent = NULL;
 		lv.m_lv = NULL;
@@ -68,19 +67,22 @@ public:
 			throw std::runtime_error("Empty columns passed");
 		}
 
+		m_columns = columns.size();
+
 		LV_COLUMN lvColumn{};
 
 		lvColumn.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
 		lvColumn.fmt = LVCFMT_LEFT;
-		lvColumn.cx = 180;
+		lvColumn.cx = m_first_column_len;
 		lvColumn.pszText = const_cast<LPWSTR>(columns[0].data());
+		lvColumn.iSubItem = 0;
 
 		ListView_InsertColumn(m_lv, 0, &lvColumn);
 
-		lvColumn.cx = 100;
+		lvColumn.cx = m_column_len;
 		for (int i = 1; i < columns.size(); i++) {
 			lvColumn.pszText = const_cast<LPWSTR>(columns[i].data());
-
+			lvColumn.iSubItem = i;
 			ListView_InsertColumn(m_lv, i, &lvColumn);
 		}
 	}
@@ -199,7 +201,7 @@ public:
 		SetWindowSubclass(m_lv, f, 0, 0);
 	}
 
-	void search(LPCWCHAR find_buf, SearchBy column, bool search_downwards) const {
+	void search(LPCWCHAR find_buf, SearchBy column, bool search_downwards, bool case_sensitive = false) const {
 		constexpr int buf_len = 512;
 		static WCHAR cell_buf[buf_len];
 
@@ -229,8 +231,7 @@ public:
 			search_downwards ? i++ : i--
 			) 
 		{
-			ListView_GetItemText(m_lv, i, (int)column, cell_buf, buf_len);
-
+			get_cell_text(i, (int)column, cell_buf, buf_len);
 			// make case-insensitive search, maybe add case insensitive/sensitive search option
 			int cell_buf_len = CharLowerBuffW(cell_buf, buf_len);
 
@@ -262,12 +263,15 @@ public:
 
 	HWND hwnd() const { return m_lv; }
 
-	void show_popup() {
-		POINT pt;
+	void show_popup(POINT pt) {
+		POINT orig_pt = pt;
+		ScreenToClient(m_lv, &pt);
 
-		GetCursorPos(&pt);
+		PopupMenu popup_menu;
 
-		int cmd = m_popup_menu.show(m_lv, pt.x, pt.y);
+		popup_menu.insert_items({ L"Copy", L"Properties" });
+
+		int cmd = popup_menu.show(m_lv, orig_pt.x, orig_pt.y);
 
 		if (!cmd && GetLastError()) {
 			// error occured or item is not selected
@@ -277,10 +281,45 @@ public:
 		switch (cmd) {
 		case 1:
 		{
-			// if region is selected and right mouse button is pressed, choose the first selected row
-			int selected_row = ListView_GetNextItem(m_lv, -1, LVNI_SELECTED);
+			if (pt.y <= 25) {
+				// approx column height is 25, so do not create popup if column was clicked
+				return;
+			}
 
-			const auto& proc_path = m_mgr[selected_row]->proc().m_path;
+			// determine what column has been clicked
+			Column col = (Column)get_selected_col(pt.x);
+
+			int row = get_selected_row();
+			if (row == -1) return;
+
+			WCHAR cell_buf[512];
+			get_cell_text(row, (int)col, cell_buf, 512);
+
+			int cell_buf_real_bytes_len = (wcslen(cell_buf)+1)*2; // multiply by two because of wchar_t, also add 1 for null terminating symbol
+
+			HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, cell_buf_real_bytes_len);
+			assert(hMem);
+
+			LPWSTR clipboard_buf = (LPWSTR)GlobalLock(hMem);
+			assert(clipboard_buf);
+
+			auto res = memcpy(clipboard_buf, cell_buf, cell_buf_real_bytes_len);
+
+			GlobalUnlock(hMem);
+
+			OpenClipboard(NULL);
+			EmptyClipboard();
+			SetClipboardData(CF_UNICODETEXT, hMem);
+			CloseClipboard();
+		}
+			break;
+		case 2:
+		{
+			// if region is selected and right mouse button is pressed, choose the first selected row
+			int row = get_selected_row();
+			if (row == -1) return;
+
+			const auto& proc_path = m_mgr[row]->proc().m_path;
 
 			// start windows' 'properites' window
 			Shell::Properties(m_lv, proc_path.c_str());
@@ -305,14 +344,9 @@ private:
 
 		if (!m_mgr.size()) return;
 
-		LVITEM item;
-		ZeroMemory(&item, sizeof(item));
-
+		LVITEM item{};
 		item.pszText = LPSTR_TEXTCALLBACK;
-		item.mask = LVIF_TEXT | LVIF_STATE | LVIF_IMAGE;
-		item.state = 0;
-		item.stateMask = 0;
-		item.iSubItem = 0;
+		item.mask = LVIF_TEXT | LVIF_IMAGE;
 
 		for (int i = 0; i < m_mgr.size(); i++) {
 			auto& row = m_mgr.get()[i];
@@ -334,12 +368,34 @@ private:
 		}
 	}
 
+	int get_selected_row() const {
+		return ListView_GetNextItem(m_lv, -1, LVNI_SELECTED);
+	}
+
+	int get_selected_col(int x) const {
+		int sum = 0;
+		for (int i = 0; i < m_columns; i++) {
+			int col_size = ListView_GetColumnWidth(m_lv, i);
+			sum += col_size;
+			if (x < sum) {
+				return i;
+			}
+		}
+	}
+
+	void get_cell_text(int row, int col, LPWSTR buf, size_t buf_size) const {
+		ListView_GetItemText(m_lv, row, col, buf, buf_size);
+
+	}
+
+	int m_columns{ -1 };
+	const int m_first_column_len = 180;
+	const int m_column_len = 100;
 	HWND m_parent;
 	HWND m_lv;
 	HIMAGELIST m_image_list;
 	ConnectionsTableManager& m_mgr;
-	DWORD m_style{ WS_TABSTOP | WS_CHILD | WS_BORDER | WS_VISIBLE | LVS_AUTOARRANGE | LVS_REPORT | LVS_SHOWSELALWAYS };
-	PopupMenu m_popup_menu;
+	DWORD m_style{ WS_TABSTOP | WS_CHILD | WS_BORDER | WS_VISIBLE | LVS_AUTOARRANGE | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SINGLESEL };
 };
 
 #endif
