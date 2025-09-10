@@ -9,6 +9,7 @@
 #include "libTcpSpy/ConnectionsTableManager.hpp"
 #include "PopupMenu.hpp"
 #include "Shell.hpp"
+#include "Clipboard.hpp"
 
 class ListView {
 public:
@@ -261,8 +262,6 @@ public:
 		ListView_EnsureVisible(m_lv, index, TRUE); // scroll list view
 	}
 
-	HWND hwnd() const { return m_lv; }
-
 	void show_popup(POINT pt) {
 		POINT orig_pt = pt;
 		ScreenToClient(m_lv, &pt);
@@ -295,22 +294,10 @@ public:
 			WCHAR cell_buf[512];
 			get_cell_text(row, (int)col, cell_buf, 512);
 
-			int cell_buf_real_bytes_len = (wcslen(cell_buf)+1)*2; // multiply by two because of wchar_t, also add 1 for null terminating symbol
-
-			HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, cell_buf_real_bytes_len);
-			assert(hMem);
-
-			LPWSTR clipboard_buf = (LPWSTR)GlobalLock(hMem);
-			assert(clipboard_buf);
-
-			auto res = memcpy(clipboard_buf, cell_buf, cell_buf_real_bytes_len);
-
-			GlobalUnlock(hMem);
-
-			OpenClipboard(NULL);
-			EmptyClipboard();
-			SetClipboardData(CF_UNICODETEXT, hMem);
-			CloseClipboard();
+			if (!Clipboard::CopyStrToClipboard(cell_buf)) {
+				// error occured
+				throw std::runtime_error("Failed to copy buf to clipboard");
+			}
 		}
 			break;
 		case 2:

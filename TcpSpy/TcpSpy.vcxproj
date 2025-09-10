@@ -129,6 +129,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Clipboard.hpp" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="ListView.hpp" />
     <ClInclude Include="PopupMenu.hpp" />
