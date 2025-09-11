@@ -6,6 +6,7 @@ Features
 * Filter connections by protocol and family
 * Open properties of a running process
 * Copy value from list
+* Find rows by columns
 
 Compilation
 -----------
