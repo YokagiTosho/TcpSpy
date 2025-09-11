@@ -4,12 +4,16 @@
 #include <string>
 #include <vector>
 #include <stdexcept>
+#include <format>
 
 #include "framework.h"
 #include "libTcpSpy/ConnectionsTableManager.hpp"
+
 #include "PopupMenu.hpp"
+
 #include "Shell.hpp"
 #include "Clipboard.hpp"
+#include "StatusBar.hpp"
 
 class ListView {
 public:
@@ -39,6 +43,8 @@ public:
 		init_image_list();
 
 		SetFocus(m_lv);
+
+		m_status_bar = std::make_unique<StatusBar>(m_lv);
 
 	};
 
@@ -88,9 +94,11 @@ public:
 		}
 	}
 
-	void refresh_items() {
+	void update() {
 		m_mgr.update();
 		insert_items();
+
+		m_status_bar->update(m_mgr);
 	}
 
 	LPWSTR draw_cell(int item, Column col) {
@@ -184,6 +192,8 @@ public:
 	}
 
 	void resize() {
+		m_status_bar->resize();
+
 		RECT rc;
 
 		GetClientRect(m_parent, &rc);
@@ -195,6 +205,7 @@ public:
 			rc.bottom - rc.top,
 			TRUE
 		);
+
 	}
 
 	template<typename Func>
@@ -266,9 +277,12 @@ public:
 		POINT orig_pt = pt;
 		ScreenToClient(m_lv, &pt);
 
+		int row = get_selected_row();
+		if (row == -1) return; // if incorrect row is selected, do not show popup menu
+
 		PopupMenu popup_menu;
 
-		popup_menu.insert_items({ L"Copy", L"Properties" });
+		popup_menu.set_items({ L"Copy", L"Properties" });
 
 		int cmd = popup_menu.show(m_lv, orig_pt.x, orig_pt.y);
 
@@ -278,18 +292,10 @@ public:
 		}
 
 		switch (cmd) {
-		case 1:
+		case PopupMenu::SelectedMenuItem::Copy:
 		{
-			if (pt.y <= 25) {
-				// approx column height is 25, so do not create popup if column was clicked
-				return;
-			}
-
 			// determine what column has been clicked
 			Column col = (Column)get_selected_col(pt.x);
-
-			int row = get_selected_row();
-			if (row == -1) return;
 
 			WCHAR cell_buf[512];
 			get_cell_text(row, (int)col, cell_buf, 512);
@@ -300,21 +306,16 @@ public:
 			}
 		}
 			break;
-		case 2:
+		case PopupMenu::SelectedMenuItem::Properties:
 		{
 			// if region is selected and right mouse button is pressed, choose the first selected row
-			int row = get_selected_row();
-			if (row == -1) return;
-
 			const auto& proc_path = m_mgr[row]->proc().m_path;
-
 			// start windows' 'properites' window
 			Shell::Properties(m_lv, proc_path.c_str());
 		}
 		break;
 		}
 	}
-
 private:
 	void init_image_list() {
 		m_image_list = ImageList_Create(
@@ -360,6 +361,7 @@ private:
 	}
 
 	int get_selected_col(int x) const {
+		// can only determine col by x coordinate
 		int sum = 0;
 		for (int i = 0; i < m_columns; i++) {
 			int col_size = ListView_GetColumnWidth(m_lv, i);
@@ -372,9 +374,10 @@ private:
 
 	void get_cell_text(int row, int col, LPWSTR buf, size_t buf_size) const {
 		ListView_GetItemText(m_lv, row, col, buf, buf_size);
-
 	}
 
+
+	StatusBar::pointer m_status_bar;
 	int m_columns{ -1 };
 	const int m_first_column_len = 180;
 	const int m_column_len = 100;

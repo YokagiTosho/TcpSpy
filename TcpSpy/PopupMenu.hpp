@@ -9,6 +9,12 @@
 
 class PopupMenu {
 public:
+	enum SelectedMenuItem {
+		BEG,
+		Copy,
+		Properties,
+	};
+
 	PopupMenu()
 	{
 		m_menu = CreatePopupMenu();
@@ -23,8 +29,8 @@ public:
 		pm.m_menu = NULL;
 	}
 
-	void insert_items(const std::vector<std::wstring> &items) {
-		int item_id = 1;
+	void set_items(const std::vector<std::wstring> &items) {
+		int item_id = SelectedMenuItem::BEG+1;
 
 		for (const auto& item : items) {
 			m_menu_info.dwTypeData = (LPWSTR)item.c_str();

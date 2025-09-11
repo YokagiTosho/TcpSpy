@@ -137,6 +137,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		Menu = GetMenu(hWnd);
 		InitFindDialog(hWnd);
 		InitListView(hWnd);
+
 	}
 		break;
 	case WM_COMMAND:
@@ -153,7 +154,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		case ID_VIEW_REFRESH:
 		case ID_REFRESHF5:
-			listView->refresh_items();
+			listView->update();
 			break;
 		// Process filters
 		case ID_TCP_LISTENER:
@@ -162,7 +163,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case ID_IPVERSION_IPV6:
 		case ID_VIEW_UDP:
 			ChangeFilter(wmId);
-			listView->refresh_items(); // refresh items after applied filters
+			listView->update(); // refresh items after applied filters
 			break;
 		case ID_QUICKEXIT:
 		case IDM_EXIT:
@@ -304,9 +305,11 @@ static void HandleWM_NOTIFY(LPARAM lParam) {
 	{
 		POINT pt;
 		GetCursorPos(&pt);
-
 		listView->show_popup(pt);
 	}
+	break;
+	case LVN_BEGINSCROLL:
+		listView->resize();
 	break;
 	}
 }
@@ -329,7 +332,7 @@ LRESULT CALLBACK ListViewSubclassProc(
 			break;
 		case ID_VIEW_REFRESH:
 		case ID_REFRESHF5:
-			listView->refresh_items();
+			listView->update();
 			break;
 		case ID_QUICKEXIT:
 			DestroyWindow(GetParent(hWnd)); // send exit to main window
@@ -371,7 +374,7 @@ static void InitListView(HWND hWnd) {
 
 	listView->init_list(columns);
 
-	listView->refresh_items();
+	listView->update();
 }
 
 static void InitFindDialog(HWND hWnd) {

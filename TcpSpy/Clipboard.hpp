@@ -41,6 +41,8 @@ namespace Clipboard {
 			return 0;
 		}
 
+		// hCopyMem is not freed, because its ownership gets moved into clipboard
+
 		return 1;
 	}
 }

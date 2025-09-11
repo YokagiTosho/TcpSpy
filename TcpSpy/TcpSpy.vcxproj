@@ -135,6 +135,7 @@
     <ClInclude Include="PopupMenu.hpp" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="Shell.hpp" />
+    <ClInclude Include="StatusBar.hpp" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="TcpSpy.h" />
   </ItemGroup>
