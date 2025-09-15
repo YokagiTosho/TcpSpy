@@ -13,7 +13,7 @@ public:
 			return it->second;
 		}
 
-		std::lock_guard<std::mutex> lck(m_mut);
+		std::scoped_lock<std::mutex> lck(m_mut);
 
 		m_cache[key] = value;
 
@@ -21,7 +21,7 @@ public:
 	}
 
 	std::optional<Value> get(Key key) {
-		std::lock_guard<std::mutex> lck(m_mut);
+		std::scoped_lock<std::mutex> lck(m_mut);
 
 		return m_cache.find(key) != m_cache.end() ? m_cache[key] : std::optional<Value>();
 	}
