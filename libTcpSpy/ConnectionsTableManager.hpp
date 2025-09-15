@@ -229,8 +229,7 @@ private:
 			auto connection_entry = std::make_unique<typename T::ConnectionEntryT>(row, *proc_ptr);
 
 			if constexpr (
-				std::is_same_v<ConnectionEntry4TCP, typename T::ConnectionEntryT> ||
-				std::is_same_v<ConnectionEntry6TCP, typename T::ConnectionEntryT>) 
+				std::is_same_v<ConnectionEntryTCP, typename T::ConnectionEntryT::parent>) 
 			{
 				ConnectionEntryTCP *_row = connection_entry.get();
 

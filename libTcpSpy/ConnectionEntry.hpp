@@ -204,6 +204,8 @@ private:
 
 class ConnectionEntry4TCP : public ConnectionEntryTCP {
 public:
+	using parent = ConnectionEntryTCP;
+
 	ConnectionEntry4TCP(const MIB_TCPROW_OWNER_PID& row, ProcessPtr proc)
 		: ConnectionEntryTCP(
 			row,
@@ -216,6 +218,8 @@ public:
 
 class ConnectionEntry4UDP : public ConnectionEntry {
 public:
+	using parent = ConnectionEntry;
+	
 	ConnectionEntry4UDP(const MIB_UDPROW_OWNER_PID& row, ProcessPtr proc)
 		: ConnectionEntry(
 			row.dwLocalAddr,
@@ -243,6 +247,8 @@ private:
 
 class ConnectionEntry6TCP : public ConnectionEntry6, public ConnectionEntryTCP {
 public:
+	using parent = ConnectionEntryTCP;
+
 	ConnectionEntry6TCP(const MIB_TCP6ROW_OWNER_PID& row, ProcessPtr proc)
 		: ConnectionEntry6(row.dwLocalScopeId)
 		, ConnectionEntryTCP(
@@ -261,6 +267,8 @@ private:
 
 class ConnectionEntry6UDP : public ConnectionEntry6, public ConnectionEntry {
 public:
+	using parent = ConnectionEntry;
+
 	ConnectionEntry6UDP(const MIB_UDP6ROW_OWNER_PID& row, ProcessPtr proc)
 		: ConnectionEntry6(row.dwLocalScopeId)
 		, ConnectionEntry(
