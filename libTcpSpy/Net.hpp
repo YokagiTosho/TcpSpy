@@ -3,7 +3,6 @@
 
 #include <string>
 #include <stdexcept>
-#include <sstream>
 
 #include <ws2tcpip.h>
 
@@ -24,6 +23,26 @@ inline static std::wstring _SockaddrToWString(LPSOCKADDR sock_addr, DWORD len) {
 	return { buf };
 }
 
+static std::wstring _ResolveAddr(LPSOCKADDR sin, size_t sin_size) {
+	WCHAR domain_name[NI_MAXHOST];
+	//WCHAR serv_name[NI_MAXSERV];
+
+	int res = GetNameInfo(
+		sin, sin_size,
+		domain_name, NI_MAXHOST,
+		NULL, 0,
+		NI_NAMEREQD);
+
+	if (res) {
+		res = WSAGetLastError();
+		if (res == WSAHOST_NOT_FOUND) {
+			return L"Domain not found";
+		}
+	}
+
+	return { domain_name };
+}
+
 namespace Net {
 	inline std::wstring ConvertPortToStr(DWORD port) {
 		return Utils::ConvertFrom<DWORD>(port);
@@ -38,11 +57,28 @@ namespace Net {
 	}
 
 	inline std::wstring ConvertAddrToStr(const UCHAR a[]) {
-		sockaddr_in6 s_in{};
-		s_in.sin6_family = AF_INET6;
-		memcpy(s_in.sin6_addr.u.Byte, a, 16);
+		sockaddr_in6 sin{};
+		sin.sin6_family = AF_INET6;
+		memcpy(sin.sin6_addr.u.Byte, a, 16);
 
-		return ::_SockaddrToWString((SOCKADDR*)&s_in, sizeof(s_in));
+		return ::_SockaddrToWString((SOCKADDR*)&sin, sizeof(sin));
+	}
+
+	// Makes DNS request I guess
+	inline std::wstring ConvertAddrToDomainName(DWORD addr) {
+		sockaddr_in sin{ };
+		sin.sin_addr.S_un.S_addr = addr;
+		sin.sin_family = AF_INET;
+		
+		return ::_ResolveAddr((LPSOCKADDR)&sin, sizeof(sin));
+	}
+
+	inline std::wstring ConvertAddrToDomainName(const UCHAR a[]) {
+		sockaddr_in6 sin{ };
+		sin.sin6_family = AF_INET6;
+		memcpy(sin.sin6_addr.u.Byte, a, 16);
+
+		return ::_ResolveAddr((LPSOCKADDR)&sin, sizeof(sin));
 	}
 }
 

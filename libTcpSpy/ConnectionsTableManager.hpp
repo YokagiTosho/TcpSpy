@@ -7,9 +7,11 @@
 #include <memory>
 #include <algorithm>
 #include <functional>
+#include <thread>
 
 #include "ConnectionsTable.hpp"
 #include "Cache.hpp"
+
 
 enum class Column {
 	ProcessName,
@@ -104,7 +106,7 @@ public:
 
 	void sort(SortBy sort_by, bool asc_order = true) {
 		auto beg = m_rows.begin();
-
+		
 		switch (sort_by) {
 		case SortBy::RemoteAddress:
 		case SortBy::RemotePort:
@@ -213,7 +215,6 @@ private:
 		for (const auto& row : table) {
 			DWORD pid = row.dwOwningPid;
 			std::optional<ProcessPtr> proc_ptr;
-
 			if (!(proc_ptr = m_proc_cache.get(pid))) {
 				// not in cache
 				ProcessPtr tmp = std::make_shared<Process>(pid);
@@ -223,9 +224,44 @@ private:
 				m_proc_cache.set(pid, tmp);
 				proc_ptr = tmp;
 			}
-
+			
 			// proc_ptr always contains value, so accessing it without tests is ok
-			m_rows.push_back(std::make_unique<typename T::ConnectionEntryT>(row, *proc_ptr));
+			auto connection_entry = std::make_unique<typename T::ConnectionEntryT>(row, *proc_ptr);
+
+			if constexpr (
+				std::is_same_v<ConnectionEntry4TCP, typename T::ConnectionEntryT> ||
+				std::is_same_v<ConnectionEntry6TCP, typename T::ConnectionEntryT>) 
+			{
+				ConnectionEntryTCP *_row = connection_entry.get();
+
+				std::optional<std::wstring> cached_domain = m_domain_cache.get(_row->remote_addr_str());
+
+				if (!cached_domain) {
+					// TODO optimize it to use less threads, like ThreadPool or something
+					std::thread([this, _row]() {
+						IPAddress addr = _row->remote_addr();
+						std::wstring domain;
+
+						switch (_row->address_family()) {
+						case ProtocolFamily::INET:
+							domain = Net::ConvertAddrToDomainName(std::get<IP4Address>(addr));
+						break;
+						case ProtocolFamily::INET6:
+							domain = Net::ConvertAddrToDomainName(std::get<IP6Address>(addr).data());
+						break;
+						}
+
+						this->m_domain_cache.set(_row->remote_addr_str(), domain);
+						_row->resolve_remote_domain(std::move(domain));
+
+					}).detach();
+				}
+				else {
+					_row->resolve_remote_domain(std::move(*cached_domain));
+				}
+			}
+
+			m_rows.push_back(std::move(connection_entry));
 		}
 	}
 
@@ -262,6 +298,7 @@ private:
 			table.update(UDP_TABLE_OWNER_PID);
 			add_rows(table);
 		}
+		
 	}
 
 	TcpTable4 m_tcp_table4{};
@@ -275,6 +312,7 @@ private:
 		Filters::IPv4, Filters::IPv6, Filters::TCP_CONNECTIONS,	Filters::TCP_LISTENING, Filters::UDP
 	};
 
+	Cache<std::wstring, std::wstring> m_domain_cache{};
 	Cache<DWORD, ProcessPtr> m_proc_cache{};
 
 	bool m_updated{ false };
