@@ -101,7 +101,7 @@ public:
 		m_status_bar->update(m_mgr);
 	}
 
-	LPWSTR draw_cell(int item, Column col) {
+	LPWSTR draw_cell(int item, Column col, bool show_remote_domain = false) {
 		const auto& row = m_mgr[item];
 
 		constexpr int BUF_LEN = 512;
@@ -139,7 +139,7 @@ public:
 			break;
 		case Column::RemoteAddress:
 			if (const auto p = dynamic_cast<ConnectionEntryTCP*>(row.get())) {
-				tmp = p->remote_addr_str();
+				tmp = show_remote_domain ? p->remote_domain_str() : p->remote_addr_str();
 			}
 			else {
 				return nullptr;
@@ -192,8 +192,6 @@ public:
 	}
 
 	void resize() {
-		m_status_bar->resize();
-
 		RECT rc;
 
 		GetClientRect(m_parent, &rc);
@@ -205,6 +203,7 @@ public:
 			rc.bottom - rc.top,
 			TRUE
 		);
+		m_status_bar->resize();
 
 	}
 
@@ -278,7 +277,7 @@ public:
 		ScreenToClient(m_lv, &pt);
 
 		int row = get_selected_row();
-		if (row == -1) return; // if incorrect row is selected, do not show popup menu
+		if (row == -1) return; // if no row is selected, do not show popup menu
 
 		PopupMenu popup_menu;
 

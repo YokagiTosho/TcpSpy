@@ -67,6 +67,7 @@ public:
 		, m_af(af)
 		, m_proc(proc)
 	{
+		
 	}
 
 	IPAddress local_addr() const { return m_local_addr; }
@@ -161,6 +162,10 @@ public:
 		return _get_addr_str(m_remote_addr);
 	}
 
+	const std::wstring& remote_domain_str() const {
+		return m_remote_domain;
+	}
+
 	const std::wstring remote_port_str() const {
 		return Net::ConvertPortToStr(m_remote_port);
 	}
@@ -183,12 +188,18 @@ public:
 		return L"";
 	}
 
+	void resolve_remote_domain(std::wstring &&str) {
+		m_remote_domain = std::move(str);
+	}
+
 	virtual ~ConnectionEntryTCP() = default;
 protected:
 	IPAddress m_remote_addr{ (DWORD)-1 };
 	DWORD m_remote_port{ (DWORD)-1 };
-
 	DWORD m_state{ (DWORD)-1 };
+private:
+	
+	std::wstring m_remote_domain{ L"Not resolved yet" };
 };
 
 class ConnectionEntry4TCP : public ConnectionEntryTCP {

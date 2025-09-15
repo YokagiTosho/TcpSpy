@@ -13,8 +13,9 @@ WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
 
 const std::array<std::wstring, 9> columns { 
-	L"Process name", L"PID", L"Protocol", L"IP version",
-	L"Local Address", L"Local Port", L"Remote Address", L"Remote Port", L"State"
+	L"Process name", L"PID", L"Protocol",
+	L"IP version", L"Local Address", L"Local Port",
+	L"Remote Address", L"Remote Port", L"State",
 };
 
 ListView::pointer listView;
@@ -29,8 +30,10 @@ std::unordered_map<int, std::pair<ConnectionsTableManager::Filters, bool>> MenuF
 	{ ID_TCP_CONNECTED,  { ConnectionsTableManager::Filters::TCP_CONNECTIONS, true} },
 	{ ID_IPVERSION_IPV4, { ConnectionsTableManager::Filters::IPv4,            true} },
 	{ ID_IPVERSION_IPV6, { ConnectionsTableManager::Filters::IPv6,            true} },
-	{ ID_VIEW_UDP,       { ConnectionsTableManager::Filters::UDP,             true} }
+	{ ID_VIEW_UDP,       { ConnectionsTableManager::Filters::UDP,             true} },
 };
+
+bool show_remote_domain = false;
 
 ATOM             MyRegisterClass(HINSTANCE hInstance);
 BOOL             InitInstance(HINSTANCE, int);
@@ -165,6 +168,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			ChangeFilter(wmId);
 			listView->update(); // refresh items after applied filters
 			break;
+		case ID_VIEW_SHOWDOMAIN:
+			CheckUncheckMenuItem(ID_VIEW_SHOWDOMAIN, (show_remote_domain = !show_remote_domain));
+			break;
 		case ID_QUICKEXIT:
 		case IDM_EXIT:
 			DestroyWindow(hWnd);
@@ -288,7 +294,7 @@ static void HandleWM_NOTIFY(LPARAM lParam) {
 	case LVN_GETDISPINFO:
 	{
 		NMLVDISPINFO* plvdi = (NMLVDISPINFO*)lParam;
-		plvdi->item.pszText = listView->draw_cell(plvdi->item.iItem, (Column)plvdi->item.iSubItem);
+		plvdi->item.pszText = listView->draw_cell(plvdi->item.iItem, (Column)plvdi->item.iSubItem, show_remote_domain);
 	}
 		break;
 	case LVN_COLUMNCLICK:

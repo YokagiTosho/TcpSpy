@@ -18,14 +18,9 @@ public:
 			STATUSCLASSNAME,
 			L"",
 			m_styles,
-			0,
-			0,
-			0,
-			0,
+			0, 0, 0, 0,
 			parent,
-			NULL,
-			NULL,
-			NULL
+			NULL, NULL, NULL
 		);
 
 		ShowWindow(m_sb, SW_SHOW);
@@ -43,9 +38,7 @@ public:
 	}
 
 	void set_items(const std::vector<std::wstring> &items) {
-		if (items.size() < m_parts) {
-			return;
-		}
+		assert(items.size() >= m_parts);
 
 		for (int i = 0; i < m_parts; i++) {
 			set_text(i, items[i].c_str());
@@ -79,7 +72,7 @@ public:
 		}
 
 		set_items({
-			std::format(L"All: {}", counter[0]),
+			std::format(L"ALL: {}", counter[0]),
 			std::format(L"TCP: {}", counter[3]),
 			std::format(L"UDP: {}", counter[4]),
 			std::format(L"IPv4: {}", counter[1]),
