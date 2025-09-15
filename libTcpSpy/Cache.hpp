@@ -3,6 +3,7 @@
 
 #include <unordered_map>
 #include <optional>
+#include <mutex>
 
 template<typename Key, typename Value>
 class Cache {
@@ -12,16 +13,21 @@ public:
 			return it->second;
 		}
 
+		std::lock_guard<std::mutex> lck(m_mut);
+
 		m_cache[key] = value;
 
 		return value;
 	}
 
 	std::optional<Value> get(Key key) {
+		std::lock_guard<std::mutex> lck(m_mut);
+
 		return m_cache.find(key) != m_cache.end() ? m_cache[key] : std::optional<Value>();
 	}
 private:
 	std::unordered_map<Key, Value> m_cache{};
+	std::mutex m_mut;
 };
 
 #endif
