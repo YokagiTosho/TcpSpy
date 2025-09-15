@@ -170,6 +170,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		case ID_VIEW_SHOWDOMAIN:
 			CheckUncheckMenuItem(ID_VIEW_SHOWDOMAIN, (show_remote_domain = !show_remote_domain));
+			listView->update();
 			break;
 		case ID_QUICKEXIT:
 		case IDM_EXIT:

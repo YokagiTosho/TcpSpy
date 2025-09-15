@@ -228,39 +228,42 @@ private:
 			// proc_ptr always contains value, so accessing it without tests is ok
 			auto connection_entry = std::make_unique<typename T::ConnectionEntryT>(row, *proc_ptr);
 
-			if constexpr (
-				std::is_same_v<ConnectionEntryTCP, typename T::ConnectionEntryT::parent>) 
+			if constexpr (std::is_same_v<ConnectionEntryTCP, typename T::ConnectionEntryT::parent>) 
 			{
-				ConnectionEntryTCP *_row = connection_entry.get();
-
-				std::optional<std::wstring> cached_domain = m_domain_cache.get(_row->remote_addr_str());
-
-				if (!cached_domain) {
-					// TODO optimize it to use less threads, like ThreadPool or something
-					std::thread([this, _row]() {
-						IPAddress addr = _row->remote_addr();
-						std::wstring domain;
-
-						switch (_row->address_family()) {
-						case ProtocolFamily::INET:
-							domain = Net::ConvertAddrToDomainName(std::get<IP4Address>(addr));
-						break;
-						case ProtocolFamily::INET6:
-							domain = Net::ConvertAddrToDomainName(std::get<IP6Address>(addr).data());
-						break;
-						}
-
-						this->m_domain_cache.set(_row->remote_addr_str(), domain);
-						_row->resolve_remote_domain(std::move(domain));
-
-					}).detach();
-				}
-				else {
-					_row->resolve_remote_domain(std::move(*cached_domain));
-				}
+				resolve_domain(connection_entry.get());
 			}
 
 			m_rows.push_back(std::move(connection_entry));
+		}
+	}
+
+	void resolve_domain(ConnectionEntryTCP* row) {
+		std::optional<std::wstring> cached_domain = m_domain_cache.get(row->remote_addr_str());
+		IPAddress addr = row->remote_addr();
+		std::wstring addr_str = row->remote_addr_str();
+		ProtocolFamily af = row->address_family();
+
+		if (!cached_domain) {
+			// TODO optimize it to use less threads, like ThreadPool or something
+			// will update remote_domain after some amount of time
+			// capture by value because it's lifetime may not outlive by ref
+			std::thread([this, addr, addr_str, af]() {
+				std::wstring domain;
+
+				switch (af) {
+				case ProtocolFamily::INET:
+					domain = Net::ConvertAddrToDomainName(std::get<IP4Address>(addr));
+					break;
+				case ProtocolFamily::INET6:
+					domain = Net::ConvertAddrToDomainName(std::get<IP6Address>(addr).data());
+					break;
+				}
+				this->m_domain_cache.set(addr_str, domain);
+
+			}).detach();
+		}
+		else {
+			row->resolve_remote_domain(std::move(*cached_domain));
 		}
 	}
 
