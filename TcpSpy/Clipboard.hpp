@@ -16,34 +16,37 @@ namespace Clipboard {
 
 		LPWSTR clipboard_buf = (LPWSTR)GlobalLock(hCopyMem);
 		if (!clipboard_buf) {
-			return 0;
+			goto Error;
 		}
 
 		memcpy(clipboard_buf, buf, buf_real_bytes_len);
 
 		if (!GlobalUnlock(hCopyMem) && GetLastError() != NO_ERROR) {
-			return 0;
+			goto Error;
 		}
 
 		if (!OpenClipboard(NULL)) {
-			return 0;
+			goto Error;
 		}
 
 		if (!EmptyClipboard()) {
-			return 0;
+			goto Error;
 		}
 
 		if (!SetClipboardData(CF_UNICODETEXT, hCopyMem)) {
-			return 0;
+			goto Error;
 		}
 
 		if (!CloseClipboard()) {
-			return 0;
+			return 0; // no need to free memory here, it has been moved to clipboard anyway
 		}
 
 		// hCopyMem is not freed, because its ownership gets moved into clipboard
 
 		return 1;
+	Error:
+		GlobalFree(hCopyMem);
+		return 0;
 	}
 }
 
