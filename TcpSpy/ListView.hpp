@@ -101,7 +101,7 @@ public:
 		m_status_bar->update(m_mgr);
 	}
 
-	LPWSTR draw_cell(int item, Column col, bool show_remote_domain = false) {
+	LPWSTR draw_cell(int item, Column col) {
 		const auto& row = m_mgr[item];
 
 		constexpr int BUF_LEN = 512;
@@ -139,7 +139,7 @@ public:
 			break;
 		case Column::RemoteAddress:
 			if (const auto p = dynamic_cast<ConnectionEntryTCP*>(row.get())) {
-				tmp = show_remote_domain ? p->remote_domain_str() : p->remote_addr_str();
+				tmp = p->remote_addr_str();
 			}
 			else {
 				return nullptr;
@@ -294,6 +294,7 @@ public:
 		case PopupMenu::SelectedMenuItem::Copy:
 		{
 			// determine what column has been clicked
+			
 			Column col = (Column)get_selected_col(pt.x);
 
 			WCHAR cell_buf[512];
@@ -369,6 +370,7 @@ private:
 				return i;
 			}
 		}
+		assert(false);
 	}
 
 	void get_cell_text(int row, int col, LPWSTR buf, size_t buf_size) const {

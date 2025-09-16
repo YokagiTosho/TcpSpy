@@ -33,8 +33,6 @@ std::unordered_map<int, std::pair<ConnectionsTableManager::Filters, bool>> MenuF
 	{ ID_VIEW_UDP,       { ConnectionsTableManager::Filters::UDP,             true} },
 };
 
-bool show_remote_domain = false;
-
 ATOM             MyRegisterClass(HINSTANCE hInstance);
 BOOL             InitInstance(HINSTANCE, int);
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
@@ -168,10 +166,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			ChangeFilter(wmId);
 			listView->update(); // refresh items after applied filters
 			break;
-		case ID_VIEW_SHOWDOMAIN:
-			CheckUncheckMenuItem(ID_VIEW_SHOWDOMAIN, (show_remote_domain = !show_remote_domain));
-			listView->update();
-			break;
 		case ID_QUICKEXIT:
 		case IDM_EXIT:
 			DestroyWindow(hWnd);
@@ -295,7 +289,7 @@ static void HandleWM_NOTIFY(LPARAM lParam) {
 	case LVN_GETDISPINFO:
 	{
 		NMLVDISPINFO* plvdi = (NMLVDISPINFO*)lParam;
-		plvdi->item.pszText = listView->draw_cell(plvdi->item.iItem, (Column)plvdi->item.iSubItem, show_remote_domain);
+		plvdi->item.pszText = listView->draw_cell(plvdi->item.iItem, (Column)plvdi->item.iSubItem);
 	}
 		break;
 	case LVN_COLUMNCLICK:
