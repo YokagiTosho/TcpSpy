@@ -21,7 +21,6 @@
 #include "Net.hpp"
 #include "Process.hpp"
 
-
 enum class ConnectionProtocol {
 	UNSET,
 	PROTO_TCP,
@@ -67,7 +66,6 @@ public:
 		, m_af(af)
 		, m_proc(proc)
 	{
-		
 	}
 
 	IPAddress local_addr() const { return m_local_addr; }

@@ -7,20 +7,21 @@
 #include <functional>
 
 #include "Cache.hpp"
-#include "ConnectionsTable.hpp"
 
 class DomainResolver {
 public:
-	std::optional<std::wstring>resolve_domain(
+	std::optional<std::wstring> resolve_domain(
 		IPAddress addr,
 		ProtocolFamily af,
 		std::function<void(std::wstring)> func) 
 	{
 		std::wstring addr_str;
 		switch (af) {
-		case ProtocolFamily::INET: addr_str = Net::ConvertAddrToStr(std::get<IP4Address>(addr));
+		case ProtocolFamily::INET: 
+			addr_str = Net::ConvertAddrToStr(std::get<IP4Address>(addr));
 			break;
-		case ProtocolFamily::INET6: addr_str = Net::ConvertAddrToStr(std::get<IP6Address>(addr).data());
+		case ProtocolFamily::INET6:
+			addr_str = Net::ConvertAddrToStr(std::get<IP6Address>(addr).data());
 			break;
 		}
 
@@ -32,7 +33,6 @@ public:
 			// capture by value because thread will obviously outlive stack variables
 			std::thread([this, addr, addr_str, af, func]() {
 				std::wstring domain;
-
 				switch (af) {
 				case ProtocolFamily::INET:
 					domain = Net::ResolveAddrToDomainName(std::get<IP4Address>(addr));
@@ -48,6 +48,7 @@ public:
 				func(domain); // call callback with resolved domain
 
 				}).detach();
+
 			return std::nullopt;
 		}
 

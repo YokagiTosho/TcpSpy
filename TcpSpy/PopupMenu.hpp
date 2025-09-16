@@ -12,6 +12,7 @@ public:
 	enum SelectedMenuItem {
 		BEG,
 		Copy,
+		WhoIs,
 		Properties,
 	};
 

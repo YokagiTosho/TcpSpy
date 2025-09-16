@@ -8,12 +8,14 @@
 
 #include "framework.h"
 #include "libTcpSpy/ConnectionsTableManager.hpp"
+#include "libTcpSpy/DomainResolver.hpp"
 
 #include "PopupMenu.hpp"
 
 #include "Shell.hpp"
 #include "Clipboard.hpp"
 #include "StatusBar.hpp"
+
 
 class ListView {
 public:
@@ -281,7 +283,7 @@ public:
 
 		PopupMenu popup_menu;
 
-		popup_menu.set_items({ L"Copy", L"Properties" });
+		popup_menu.set_items({ L"Copy", L"WhoIs", L"Properties"});
 
 		int cmd = popup_menu.show(m_lv, orig_pt.x, orig_pt.y);
 
@@ -314,6 +316,22 @@ public:
 			Shell::Properties(m_lv, proc_path.c_str());
 		}
 		break;
+		case PopupMenu::SelectedMenuItem::WhoIs:
+		{
+			auto &r = m_mgr[row];
+
+			if (r->protocol() == ConnectionProtocol::PROTO_TCP) {
+#if 1
+				m_dr.resolve_domain(
+					((ConnectionEntryTCP*)r.get())->remote_addr(),
+					r->address_family(),
+					[](std::wstring str) {
+						str += L"wtf";
+					});
+#endif
+			}
+		}
+			break;
 		}
 	}
 private:
@@ -386,6 +404,7 @@ private:
 	HWND m_lv;
 	HIMAGELIST m_image_list;
 	ConnectionsTableManager& m_mgr;
+	DomainResolver m_dr;
 	DWORD m_style{ WS_TABSTOP | WS_CHILD | WS_BORDER | WS_VISIBLE | LVS_AUTOARRANGE | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SINGLESEL };
 };
 

@@ -25,7 +25,6 @@ inline static std::wstring _SockaddrToWString(LPSOCKADDR sock_addr, DWORD len) {
 
 static std::wstring _ResolveAddr(LPSOCKADDR sin, size_t sin_size) {
 	WCHAR domain_name[NI_MAXHOST];
-	//WCHAR serv_name[NI_MAXSERV];
 
 	int res = GetNameInfo(
 		sin, sin_size,
@@ -36,7 +35,7 @@ static std::wstring _ResolveAddr(LPSOCKADDR sin, size_t sin_size) {
 	if (res) {
 		res = WSAGetLastError();
 		if (res == WSAHOST_NOT_FOUND) {
-			return L"Domain not found";
+			return {};
 		}
 	}
 
@@ -64,7 +63,6 @@ namespace Net {
 		return ::_SockaddrToWString((SOCKADDR*)&sin, sizeof(sin));
 	}
 
-	// Makes DNS request I guess
 	inline std::wstring ResolveAddrToDomainName(DWORD addr) {
 		sockaddr_in sin{ };
 		sin.sin_addr.S_un.S_addr = addr;

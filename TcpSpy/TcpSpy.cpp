@@ -257,12 +257,6 @@ INT_PTR CALLBACK FindDialogCallback(HWND hFind, UINT message, WPARAM wParam, LPA
 		}
 		break; 
 	}
-	case WM_KEYDOWN:
-		// DOES NOT RECEIVE FOR SOME REASON
-		if ((wParam == VK_RETURN) || (wParam == VK_TAB)) {
-			return FALSE;
-		}
-		break;
 	}
 	return (INT_PTR)FALSE;
 }
