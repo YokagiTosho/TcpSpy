@@ -9,11 +9,11 @@ template<typename Key, typename Value>
 class Cache {
 public:
 	Value set(Key key, Value value) {
+		std::scoped_lock<std::mutex> lck(m_mut);
+
 		if (auto it = m_cache.find(key); it != m_cache.end()) {
 			return it->second;
 		}
-
-		std::scoped_lock<std::mutex> lck(m_mut);
 
 		m_cache[key] = value;
 

@@ -7,11 +7,9 @@
 #include <memory>
 #include <algorithm>
 #include <functional>
-#include <thread>
 
 #include "ConnectionsTable.hpp"
 #include "Cache.hpp"
-
 
 enum class Column {
 	ProcessName,
@@ -224,46 +222,17 @@ private:
 				m_proc_cache.set(pid, tmp);
 				proc_ptr = tmp;
 			}
-			
-			// proc_ptr always contains value, so accessing it without tests is ok
 			auto connection_entry = std::make_unique<typename T::ConnectionEntryT>(row, *proc_ptr);
+#if 0
+			// proc_ptr always contains value, so accessing it without tests is ok
 
 			if constexpr (std::is_same_v<ConnectionEntryTCP, typename T::ConnectionEntryT::parent>) 
 			{
-				resolve_domain(connection_entry.get());
+				//resolve_domain(connection_entry.get());
 			}
+#endif
 
 			m_rows.push_back(std::move(connection_entry));
-		}
-	}
-
-	void resolve_domain(ConnectionEntryTCP* row) {
-		std::optional<std::wstring> cached_domain = m_domain_cache.get(row->remote_addr_str());
-		IPAddress addr = row->remote_addr();
-		std::wstring addr_str = row->remote_addr_str();
-		ProtocolFamily af = row->address_family();
-
-		if (!cached_domain) {
-			// TODO optimize it to use less threads, like ThreadPool or something
-			// will update remote_domain after some amount of time
-			// capture by value because it's lifetime may not outlive by ref
-			std::thread([this, addr, addr_str, af]() {
-				std::wstring domain;
-
-				switch (af) {
-				case ProtocolFamily::INET:
-					domain = Net::ConvertAddrToDomainName(std::get<IP4Address>(addr));
-					break;
-				case ProtocolFamily::INET6:
-					domain = Net::ConvertAddrToDomainName(std::get<IP6Address>(addr).data());
-					break;
-				}
-				this->m_domain_cache.set(addr_str, domain);
-
-			}).detach();
-		}
-		else {
-			row->resolve_remote_domain(std::move(*cached_domain));
 		}
 	}
 
@@ -300,7 +269,6 @@ private:
 			table.update(UDP_TABLE_OWNER_PID);
 			add_rows(table);
 		}
-		
 	}
 
 	TcpTable4 m_tcp_table4{};
@@ -314,10 +282,7 @@ private:
 		Filters::IPv4, Filters::IPv6, Filters::TCP_CONNECTIONS,	Filters::TCP_LISTENING, Filters::UDP
 	};
 
-	Cache<std::wstring, std::wstring> m_domain_cache{};
 	Cache<DWORD, ProcessPtr> m_proc_cache{};
-
-	bool m_updated{ false };
 };
 
 #endif
