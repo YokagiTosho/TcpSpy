@@ -113,7 +113,7 @@ protected:
 		default:
 			break;
 		}
-		assert(false);
+		assert(false); // should be unreachable in normal conditions
 	}
 	ProcessPtr m_proc;
 
@@ -167,7 +167,7 @@ public:
 	}
 
 	const std::wstring remote_port_str() const {
-		return Net::ConvertPortToStr(m_remote_port);
+		return Net::ConvertPortToService(m_remote_port, "tcp");
 	}
 
 	std::wstring state_str() const {

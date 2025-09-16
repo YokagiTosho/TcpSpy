@@ -65,7 +65,7 @@ namespace Net {
 	}
 
 	// Makes DNS request I guess
-	inline std::wstring ConvertAddrToDomainName(DWORD addr) {
+	inline std::wstring ResolveAddrToDomainName(DWORD addr) {
 		sockaddr_in sin{ };
 		sin.sin_addr.S_un.S_addr = addr;
 		sin.sin_family = AF_INET;
@@ -73,12 +73,20 @@ namespace Net {
 		return ::_ResolveAddr((LPSOCKADDR)&sin, sizeof(sin));
 	}
 
-	inline std::wstring ConvertAddrToDomainName(const UCHAR a[]) {
+	inline std::wstring ResolveAddrToDomainName(const UCHAR a[]) {
 		sockaddr_in6 sin{ };
 		sin.sin6_family = AF_INET6;
 		memcpy(sin.sin6_addr.u.Byte, a, 16);
 
 		return ::_ResolveAddr((LPSOCKADDR)&sin, sizeof(sin));
+	}
+
+	inline std::wstring ConvertPortToService(DWORD port, const char *proto) {
+		servent *serv = getservbyport(htons(port), proto);
+		if (!serv) {
+			return Net::ConvertPortToStr(port);
+		}
+		return { serv->s_name, serv->s_name + strlen(serv->s_name) };
 	}
 }
 
