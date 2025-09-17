@@ -41,8 +41,6 @@ public:
 						break;
 					}
 
-					std::scoped_lock<std::mutex> lck(m_mut);
-
 					this->m_domain_cache.set(addr_str, domain);
 					func(domain); // call callback with resolved domain
 
@@ -63,7 +61,6 @@ public:
 private:
 	bool m_task_running{ false };
 	Cache<std::wstring, std::wstring> m_domain_cache{};
-	std::mutex m_mut;
 };
 
 #endif
