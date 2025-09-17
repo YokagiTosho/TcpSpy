@@ -7,6 +7,7 @@ Features
 * Open properties of a running process
 * Copy value from list
 * Find rows by columns
+* Reverse DNS lookup
 
 Compilation
 -----------
