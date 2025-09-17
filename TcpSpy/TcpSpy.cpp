@@ -7,6 +7,7 @@
 
 #include "FindDlg.hpp"
 #include "ListView.hpp"
+#include "Cursor.hpp"
 
 #define MAX_LOADSTRING 100
 
@@ -135,6 +136,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		// init windows that depend on main window, initialize them
 		Menu = GetMenu(hWnd);
 		InitListView(hWnd);
+		InitCursors();
 	}
 		break;
 	case WM_COMMAND:
@@ -182,7 +184,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 	case WM_SETCURSOR:
 	{
-		return FALSE;
+		SetCursor(gCurrentCursor);
+		return TRUE;
 	}
 		break;
 	default:

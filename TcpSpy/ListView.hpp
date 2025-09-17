@@ -12,6 +12,7 @@
 #include "libTcpSpy/Column.hpp"
 
 #include "PopupMenu.hpp"
+#include "Cursor.hpp"
 
 #include "Shell.hpp"
 #include "Clipboard.hpp"
@@ -57,19 +58,7 @@ public:
 	};
 
 	ListView(const ListView& lv) = delete;
-
-	ListView(ListView&& lv) noexcept
-		: m_lv(lv.m_lv), m_parent(lv.m_parent)
-		, m_style(lv.m_style), m_image_list(lv.m_image_list)
-		, m_mgr(lv.m_mgr), m_find_dlg(lv.m_find_dlg)
-	{
-		lv.m_parent = NULL;
-		lv.m_lv = NULL;
-		lv.m_image_list = NULL;
-		lv.m_find_dlg = NULL;
-
-		lv.m_style = 0;
-	}
+	ListView(ListView&& lv) = delete;
 
 	~ListView() {
 		// i think destroying handles is not neccessary, because lifetime of listview is as long as main program's lifetime
@@ -267,12 +256,16 @@ public:
 		{
 			auto &r = m_mgr[row];
 			if (r->protocol() == ConnectionProtocol::PROTO_TCP) {
+
+				gCurrentCursor = gWaitCursor;
+
 				m_dr.resolve_domain(
 					((ConnectionEntryTCP*)r.get())->remote_addr(),
 					r->address_family(),
-					[this](std::wstring &str) {
+					[this](std::wstring &resolved_domain) {
+						gCurrentCursor = gArrowCursor;
 						// lambda will run inside thread, capture needed data here
-						MessageBox(this->m_lv, str.size() ? str.c_str() : L"Failed to resolve", L"Who is?", MB_OK);
+						MessageBox(this->m_lv, resolved_domain.size() ? resolved_domain.c_str() : L"Failed to resolve", L"Who is?", MB_OK);
 				});
 			}
 		}

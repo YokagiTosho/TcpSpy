@@ -130,6 +130,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Clipboard.hpp" />
+    <ClInclude Include="Cursor.hpp" />
     <ClInclude Include="FindDlg.hpp" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="ListView.hpp" />
@@ -141,6 +142,7 @@
     <ClInclude Include="TcpSpy.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Cursor.cpp" />
     <ClCompile Include="FindDlg.cpp" />
     <ClCompile Include="TcpSpy.cpp" />
   </ItemGroup>

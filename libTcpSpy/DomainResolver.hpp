@@ -28,35 +28,40 @@ public:
 		std::optional<std::wstring> cached_domain = m_domain_cache.get(addr_str);
 
 		if (!cached_domain) {
-			// TODO optimize it to use less threads, like ThreadPool or something
+			if (!m_task_running) {
+				// capture by value because thread will obviously outlive stack variables
+				std::thread([this, addr, addr_str, af, func]() {
+					std::wstring domain;
+					switch (af) {
+					case ProtocolFamily::INET:
+						domain = Net::ResolveAddrToDomainName(std::get<IP4Address>(addr));
+						break;
+					case ProtocolFamily::INET6:
+						domain = Net::ResolveAddrToDomainName(std::get<IP6Address>(addr).data());
+						break;
+					}
 
-			// capture by value because thread will obviously outlive stack variables
-			std::thread([this, addr, addr_str, af, func]() {
-				std::wstring domain;
-				switch (af) {
-				case ProtocolFamily::INET:
-					domain = Net::ResolveAddrToDomainName(std::get<IP4Address>(addr));
-					break;
-				case ProtocolFamily::INET6:
-					domain = Net::ResolveAddrToDomainName(std::get<IP6Address>(addr).data());
-					break;
-				}
+					std::scoped_lock<std::mutex> lck(m_mut);
 
-				std::scoped_lock<std::mutex> lck(m_mut);
+					this->m_domain_cache.set(addr_str, domain);
+					func(domain); // call callback with resolved domain
 
-				this->m_domain_cache.set(addr_str, domain);
-				func(domain); // call callback with resolved domain
+					m_task_running = false;
 
 				}).detach();
 
+				m_task_running = true;
+			}
 			return std::nullopt;
 		}
+		else {
+			func(*cached_domain);
 
-		func(*cached_domain);
-
-		return *cached_domain;
+			return *cached_domain;
+		}
 	}
 private:
+	bool m_task_running{ false };
 	Cache<std::wstring, std::wstring> m_domain_cache{};
 	std::mutex m_mut;
 };
