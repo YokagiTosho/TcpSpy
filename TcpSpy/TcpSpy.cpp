@@ -183,11 +183,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		PostQuitMessage(0);
 		break;
 	case WM_SETCURSOR:
-	{
 		SetCursor(gCurrentCursor);
 		return TRUE;
-	}
-		break;
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
 	}

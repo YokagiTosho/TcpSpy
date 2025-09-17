@@ -231,22 +231,18 @@ public:
 		switch (cmd) {
 		case PopupMenu::SelectedMenuItem::Copy:
 		{
-			// determine what column has been clicked
-			
 			Column col = (Column)get_selected_col(pt.x);
 
 			WCHAR cell_buf[512];
 			get_cell_text(row, (int)col, cell_buf, 512);
 
 			if (!Clipboard::CopyStrToClipboard(cell_buf)) {
-				// error occured
 				throw std::runtime_error("Failed to copy buf to clipboard");
 			}
 		}
 			break;
 		case PopupMenu::SelectedMenuItem::Properties:
 		{
-			// if region is selected and right mouse button is pressed, choose the first selected row
 			const auto& proc_path = m_mgr[row]->proc().m_path;
 			// start windows' 'properites' window
 			Shell::Properties(m_lv, proc_path.c_str());
@@ -344,9 +340,9 @@ private:
 
 	HWND m_parent;
 	HWND m_lv;
+	HWND m_find_dlg;
 	DWORD m_style{ WS_TABSTOP | WS_CHILD | WS_BORDER | WS_VISIBLE | LVS_AUTOARRANGE | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SINGLESEL };
 	HIMAGELIST m_image_list;
-	HWND m_find_dlg;
 
 	ConnectionsTableManager& m_mgr;
 	DomainResolver m_dr;

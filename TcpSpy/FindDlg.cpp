@@ -4,6 +4,7 @@
 static INT_PTR CALLBACK FindDialogCallback(HWND hFind, UINT message, WPARAM wParam, LPARAM lParam);
 
 static void SetFindDialogProp(HWND hFind, HWND hWnd) {
+	// cant get parent handle without setting property for dialog
 	SetProp(hFind, L"ListViewHandle", hWnd);
 }
 
