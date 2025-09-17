@@ -42,9 +42,15 @@
     <ClInclude Include="StatusBar.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="FindDlg.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TcpSpy.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FindDlg.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

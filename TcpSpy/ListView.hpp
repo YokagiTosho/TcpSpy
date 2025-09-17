@@ -9,13 +9,13 @@
 #include "framework.h"
 #include "libTcpSpy/ConnectionsTableManager.hpp"
 #include "libTcpSpy/DomainResolver.hpp"
+#include "libTcpSpy/Column.hpp"
 
 #include "PopupMenu.hpp"
 
 #include "Shell.hpp"
 #include "Clipboard.hpp"
 #include "StatusBar.hpp"
-
 
 class ListView {
 public:
@@ -48,6 +48,12 @@ public:
 
 		m_status_bar = std::make_unique<StatusBar>(m_lv);
 
+		m_find_dlg = InitFindDialog(m_lv, { 
+			L"Process name", L"PID", L"Protocol", 
+			L"IP version", L"Local Address", L"Local Port", 
+			L"Remote Address", L"Remote Port", L"State",
+			});
+
 	};
 
 	ListView(const ListView& lv) = delete;
@@ -55,11 +61,12 @@ public:
 	ListView(ListView&& lv) noexcept
 		: m_lv(lv.m_lv), m_parent(lv.m_parent)
 		, m_style(lv.m_style), m_image_list(lv.m_image_list)
-		, m_mgr(lv.m_mgr)
+		, m_mgr(lv.m_mgr), m_find_dlg(lv.m_find_dlg)
 	{
 		lv.m_parent = NULL;
 		lv.m_lv = NULL;
 		lv.m_image_list = NULL;
+		lv.m_find_dlg = NULL;
 
 		lv.m_style = 0;
 	}
@@ -214,66 +221,6 @@ public:
 		SetWindowSubclass(m_lv, f, 0, 0);
 	}
 
-	void search(LPCWCHAR find_buf, SearchBy column, bool search_downwards, bool case_sensitive = false) const {
-		constexpr int buf_len = 512;
-		static WCHAR cell_buf[buf_len];
-
-		int row_count = ListView_GetItemCount(m_lv);
-		static int index = -1; // should be saved for consequence calls
-		int i;
-
-		if (search_downwards) {
-			if (index != -1 && index != row_count - 1) {
-				i = index + 1;
-			}
-			else {
-				i = 0;
-			}
-		}
-		else {
-			if (index != -1 && index != 0) {
-				i = index - 1;
-			}
-			else {
-				i = row_count - 1;
-			}
-		}
-
-		for (;
-			search_downwards ? (i < row_count) : (i >= 0);
-			search_downwards ? i++ : i--
-			) 
-		{
-			get_cell_text(i, (int)column, cell_buf, buf_len);
-			// make case-insensitive search, maybe add case insensitive/sensitive search option
-			int cell_buf_len = CharLowerBuffW(cell_buf, buf_len);
-
-			LPCWSTR p1 = find_buf, p2 = cell_buf;
-
-			while (*p1 == *p2) { p1++; p2++; }
-
-			if (!*p1) {
-				// whole find_buf string matched
-				index = i;
-				break;
-			}
-			else {
-				index = -1;
-			}
-		}
-
-		// didnt find just return
-		if (index == -1) {
-			return;
-		}
-
-		// clear selected rows if any
-		ListView_SetItemState(m_lv, -1, 0, LVIS_SELECTED);
-
-		ListView_SetItemState(m_lv, index, LVIS_SELECTED, LVIS_SELECTED);
-		ListView_EnsureVisible(m_lv, index, TRUE); // scroll list view
-	}
-
 	void show_popup(POINT pt) {
 		POINT orig_pt = pt;
 		ScreenToClient(m_lv, &pt);
@@ -319,20 +266,22 @@ public:
 		case PopupMenu::SelectedMenuItem::WhoIs:
 		{
 			auto &r = m_mgr[row];
-
 			if (r->protocol() == ConnectionProtocol::PROTO_TCP) {
-#if 1
 				m_dr.resolve_domain(
 					((ConnectionEntryTCP*)r.get())->remote_addr(),
 					r->address_family(),
-					[](std::wstring str) {
-						str += L"wtf";
-					});
-#endif
+					[this](std::wstring &str) {
+						// lambda will run inside thread, capture needed data here
+						MessageBox(this->m_lv, str.size() ? str.c_str() : L"Failed to resolve", L"Who is?", MB_OK);
+				});
 			}
 		}
 			break;
 		}
+	}
+
+	void show_find_dlg() {
+		ShowWindow(m_find_dlg, SW_SHOW);
 	}
 private:
 	void init_image_list() {
@@ -395,17 +344,19 @@ private:
 		ListView_GetItemText(m_lv, row, col, buf, buf_size);
 	}
 
-
 	StatusBar::pointer m_status_bar;
 	int m_columns{ -1 };
 	const int m_first_column_len = 180;
 	const int m_column_len = 100;
+
 	HWND m_parent;
 	HWND m_lv;
+	DWORD m_style{ WS_TABSTOP | WS_CHILD | WS_BORDER | WS_VISIBLE | LVS_AUTOARRANGE | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SINGLESEL };
 	HIMAGELIST m_image_list;
+	HWND m_find_dlg;
+
 	ConnectionsTableManager& m_mgr;
 	DomainResolver m_dr;
-	DWORD m_style{ WS_TABSTOP | WS_CHILD | WS_BORDER | WS_VISIBLE | LVS_AUTOARRANGE | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SINGLESEL };
 };
 
 #endif

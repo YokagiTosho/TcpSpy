@@ -130,6 +130,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Clipboard.hpp" />
+    <ClInclude Include="FindDlg.hpp" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="ListView.hpp" />
     <ClInclude Include="PopupMenu.hpp" />
@@ -140,6 +141,7 @@
     <ClInclude Include="TcpSpy.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="FindDlg.cpp" />
     <ClCompile Include="TcpSpy.cpp" />
   </ItemGroup>
   <ItemGroup>

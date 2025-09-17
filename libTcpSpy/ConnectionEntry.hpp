@@ -196,7 +196,6 @@ protected:
 	DWORD m_remote_port{ (DWORD)-1 };
 	DWORD m_state{ (DWORD)-1 };
 private:
-	
 	std::wstring m_remote_domain{ L"Not resolved yet" };
 };
 

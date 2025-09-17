@@ -4,6 +4,8 @@
 #include <algorithm>
 
 #include "libTcpSpy/ConnectionsTableManager.hpp"
+
+#include "FindDlg.hpp"
 #include "ListView.hpp"
 
 #define MAX_LOADSTRING 100
@@ -12,7 +14,7 @@ HINSTANCE hInst;                                // current instance
 WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
 
-const std::array<std::wstring, 9> columns { 
+const std::array<std::wstring, (int)Column::Count> columns { 
 	L"Process name", L"PID", L"Protocol",
 	L"IP version", L"Local Address", L"Local Port",
 	L"Remote Address", L"Remote Port", L"State",
@@ -21,7 +23,6 @@ const std::array<std::wstring, 9> columns {
 ListView::pointer listView;
 ConnectionsTableManager connectionsManager;
 
-HWND hFindDlg;
 HMENU Menu;
 
 // key is ID of menu item, std::pair is filter with bool value turned on/off filter
@@ -37,7 +38,6 @@ ATOM             MyRegisterClass(HINSTANCE hInstance);
 BOOL             InitInstance(HINSTANCE, int);
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK About(HWND, UINT, WPARAM, LPARAM);
-INT_PTR CALLBACK FindDialogCallback(HWND, UINT, WPARAM, LPARAM);
 LRESULT CALLBACK ListViewSubclassProc(HWND, UINT, WPARAM, LPARAM, UINT_PTR, DWORD_PTR);
 
 static void InitCommonCtrls();
@@ -45,9 +45,7 @@ static void InitWSA();
 static void HandleWM_NOTIFY(LPARAM lParam);
 static void CheckUncheckMenuItem(int menu_item_id, int flag);
 static void ModFilter(ConnectionsTableManager::Filters filter, bool value);
-static void OpenFindDialog();
 static void InitListView(HWND hWnd);
-static void InitFindDialog(HWND hWnd);
 static void ChangeFilter(int id);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
@@ -136,9 +134,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 		// init windows that depend on main window, initialize them
 		Menu = GetMenu(hWnd);
-		InitFindDialog(hWnd);
 		InitListView(hWnd);
-
 	}
 		break;
 	case WM_COMMAND:
@@ -151,7 +147,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		case ID_FINDBOX: /* Button from menu and shortcut */
 		case ID_FILE_FIND:
-			OpenFindDialog();
+			listView->show_find_dlg();
 			break;
 		case ID_VIEW_REFRESH:
 		case ID_REFRESHF5:
@@ -184,6 +180,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		break;
+	case WM_SETCURSOR:
+	{
+		return FALSE;
+	}
+		break;
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
 	}
@@ -205,58 +206,6 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 			return (INT_PTR)TRUE;
 		}
 		break;
-	}
-	return (INT_PTR)FALSE;
-}
-
-static void DialogFindRow(HWND hFind) {
-	constexpr int buf_len = 512;
-	static WCHAR find_buf[buf_len];
-	Column column;
-	HWND hFindInput;
-	bool search_downwards;
-
-	search_downwards = IsDlgButtonChecked(hFind, IDC_RADIO2) ? true : false;
-
-	column = (Column)ComboBox_GetCurSel(GetDlgItem(hFind, IDC_SEARCHBY));
-
-	if (column < Column::ProcessName || column > Column::State) {
-		return;
-	}
-
-	hFindInput = GetDlgItem(hFind, IDC_FINDINPUT);
-	int find_buf_len = GetWindowText(hFindInput, find_buf, buf_len);
-
-	if (!find_buf_len) {
-		return;
-	}
-
-	CharLowerBuffW(find_buf, find_buf_len);
-
-	listView->search(find_buf, column, search_downwards);
-}
-
-INT_PTR CALLBACK FindDialogCallback(HWND hFind, UINT message, WPARAM wParam, LPARAM lParam) {
-	UNREFERENCED_PARAMETER(lParam);
-	
-	switch (message)
-	{
-	case WM_INITDIALOG:
-		return (INT_PTR)TRUE;
-
-	case WM_COMMAND:
-	{
-		int wID = LOWORD(wParam);
-		switch (wID) {
-		case IDFINDNEXT:
-			DialogFindRow(hFind);
-			break;
-		case IDCANCEL:
-			ShowWindow(hFind, HIDE_WINDOW);
-			return (INT_PTR)TRUE;
-		}
-		break; 
-	}
 	}
 	return (INT_PTR)FALSE;
 }
@@ -313,7 +262,7 @@ LRESULT CALLBACK ListViewSubclassProc(
 	HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam,
 	UINT_PTR uIdSubclass, DWORD_PTR dwRefData) 
 {
-	// Proc is used to handle specific 
+	// Proc is used to handle specific for list view messages
 	int wmId = LOWORD(wParam);
 	switch (msg)
 	{
@@ -323,7 +272,7 @@ LRESULT CALLBACK ListViewSubclassProc(
 			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
 			break;
 		case ID_FINDBOX: /* Button from menu and shortcut */
-			OpenFindDialog();
+			listView->show_find_dlg();
 			break;
 		case ID_VIEW_REFRESH:
 		case ID_REFRESHF5:
@@ -347,11 +296,6 @@ static void ModFilter(ConnectionsTableManager::Filters filter, bool value) {
 	}
 }
 
-static void OpenFindDialog() {
-	ShowWindow(hFindDlg, SW_SHOW);
-	SetFocus(GetDlgItem(hFindDlg, IDC_FINDINPUT)); // set focus to edit control for keyboard
-}
-
 static void InitWSA() {
 	WSADATA wsaData;
 	WORD wVersionRequested = MAKEWORD(2, 2);
@@ -370,20 +314,4 @@ static void InitListView(HWND hWnd) {
 	listView->init_list(columns);
 
 	listView->update();
-}
-
-static void InitFindDialog(HWND hWnd) {
-	hFindDlg = CreateDialog(NULL, MAKEINTRESOURCE(IDD_FINDBOX), hWnd, FindDialogCallback);
-
-	// populate combobox
-	HWND hComboBox = GetDlgItem(hFindDlg, IDC_SEARCHBY);
-
-	for (const auto &str : columns) {
-		ComboBox_AddString(hComboBox, str.c_str());
-	}
-	// set process name column by default for searching against to
-	ComboBox_SetCurSel(hComboBox, Column::ProcessName);
-
-	// turn radio on for 'Down'
-	CheckRadioButton(hFindDlg, IDC_RADIO1, IDC_RADIO2, IDC_RADIO2);
 }

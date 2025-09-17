@@ -13,7 +13,7 @@ public:
 	std::optional<std::wstring> resolve_domain(
 		IPAddress addr,
 		ProtocolFamily af,
-		std::function<void(std::wstring)> func) 
+		std::function<void(std::wstring &)> func)
 	{
 		std::wstring addr_str;
 		switch (af) {

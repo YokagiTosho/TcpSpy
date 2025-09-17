@@ -10,21 +10,7 @@
 
 #include "ConnectionsTable.hpp"
 #include "Cache.hpp"
-
-enum class Column {
-	ProcessName,
-	PID,
-	Protocol,
-	INET,
-	LocalAddress,
-	LocalPort,
-	RemoteAddress,
-	RemotePort,
-	State,
-};
-
-using SortBy = Column;
-using SearchBy = Column;
+#include "Column.hpp"
 
 class ConnectionsTableManager {
 public:
@@ -222,17 +208,8 @@ private:
 				m_proc_cache.set(pid, tmp);
 				proc_ptr = tmp;
 			}
-			auto connection_entry = std::make_unique<typename T::ConnectionEntryT>(row, *proc_ptr);
-#if 0
-			// proc_ptr always contains value, so accessing it without tests is ok
 
-			if constexpr (std::is_same_v<ConnectionEntryTCP, typename T::ConnectionEntryT::parent>) 
-			{
-				//resolve_domain(connection_entry.get());
-			}
-#endif
-
-			m_rows.push_back(std::move(connection_entry));
+			m_rows.push_back(std::make_unique<typename T::ConnectionEntryT>(row, *proc_ptr));
 		}
 	}
 

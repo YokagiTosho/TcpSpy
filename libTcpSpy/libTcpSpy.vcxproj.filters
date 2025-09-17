@@ -47,5 +47,8 @@
     <ClInclude Include="DomainResolver.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Column.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
