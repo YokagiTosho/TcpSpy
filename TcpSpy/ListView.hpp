@@ -29,13 +29,15 @@ public:
 
 		GetClientRect(parent, &rcClient);
 
+		m_status_bar = std::make_unique<StatusBar>(parent);
+
 		m_lv = CreateWindow(
 			WC_LISTVIEW,
 			L"",
 			m_style,
 			0, 0,
 			rcClient.right - rcClient.left,
-			rcClient.bottom - rcClient.top,
+			rcClient.bottom - rcClient.top - m_status_bar->height(),
 			m_parent,
 			NULL,
 			NULL,
@@ -47,14 +49,11 @@ public:
 
 		SetFocus(m_lv);
 
-		m_status_bar = std::make_unique<StatusBar>(m_lv);
-
 		m_find_dlg = InitFindDialog(m_lv, { 
 			L"Process name", L"PID", L"Protocol", 
 			L"IP version", L"Local Address", L"Local Port", 
 			L"Remote Address", L"Remote Port", L"State",
 			});
-
 	};
 
 	ListView(const ListView& lv) = delete;
@@ -198,11 +197,10 @@ public:
 			rc.left,
 			rc.top,
 			rc.right - rc.left,
-			rc.bottom - rc.top,
+			rc.bottom - rc.top - m_status_bar->height(),
 			TRUE
 		);
 		m_status_bar->resize();
-
 	}
 
 	template<typename Func>

@@ -23,9 +23,10 @@ public:
 			NULL, NULL, NULL
 		);
 
-		ShowWindow(m_sb, SW_SHOW);
-		
 		init();
+		get_sb_height();
+
+		ShowWindow(m_sb, SW_SHOW);
 	}
 
 	void resize() {
@@ -49,35 +50,44 @@ public:
 
 	void update(ConnectionsTableManager &ctm) {
 		int counter[5] = { 0,0,0,0,0 };
+		
+		enum {
+			ALL_COUNT,
+			INET_COUNT,
+			INET6_COUNT,
+			TCP_COUNT,
+			UDP_COUNT,
+		};
 
-		counter[0] = ctm.size();
+		counter[ALL_COUNT] = ctm.size();
+
 		for (auto& row : ctm) {
 			switch (row->address_family()) {
 			case ProtocolFamily::INET:
-				counter[1]++;
+				counter[INET_COUNT]++;
 				break;
 			case ProtocolFamily::INET6:
-				counter[2]++;
+				counter[INET6_COUNT]++;
 				break;
 			}
 
 			switch (row->protocol()) {
 			case ConnectionProtocol::PROTO_TCP:
-				counter[3]++;
+				counter[TCP_COUNT]++;
 				break;
 			case ConnectionProtocol::PROTO_UDP:
-				counter[4]++;
+				counter[UDP_COUNT]++;
 				break;
 			}
 		}
 
 		set_items({
-			std::format(L"ALL: {}", counter[0]),
-			std::format(L"TCP: {}", counter[3]),
-			std::format(L"UDP: {}", counter[4]),
-			std::format(L"IPv4: {}", counter[1]),
-			std::format(L"IPv6: {}", counter[2]),
-			});
+			std::format(L"ALL: {}", counter[ALL_COUNT]),
+			std::format(L"TCP: {}", counter[TCP_COUNT]),
+			std::format(L"UDP: {}", counter[UDP_COUNT]),
+			std::format(L"IPv4: {}", counter[INET_COUNT]),
+			std::format(L"IPv6: {}", counter[INET6_COUNT]),
+		});
 	}
 
 	~StatusBar() {
@@ -86,6 +96,8 @@ public:
 			m_sb = NULL;
 		}
 	}
+
+	int height() const { return m_height; }
 private:
 	int set_text(char index, LPCWSTR text) {
 		WPARAM wParam = MAKEWPARAM(MAKEWORD(index, SBT_NOBORDERS), 0);
@@ -94,34 +106,47 @@ private:
 
 	void init() {
 		RECT rcClient;
-		HLOCAL hloc;
-		PINT paParts;
-		int i, nWidth;
-
+		int width;
 		GetClientRect(m_parent, &rcClient);
-
-		hloc = LocalAlloc(LHND, sizeof(int) * m_parts);
-		paParts = (PINT)LocalLock(hloc);
-
-		nWidth = rcClient.right / m_parts;
-		int rightEdge = nWidth;
-		for (i = 0; i < m_parts; i++) {
-			paParts[i] = rightEdge;
-			rightEdge += nWidth;
+		int sb_width = rcClient.right;
+	
+		if (sb_width > 1000) {
+			width = (sb_width / 1000 * 1000) / 5;
+		}
+		else if (sb_width > 100) {
+			width = (sb_width / 100 * 100) / 5;
+		}
+		else {
+			width = (sb_width / 10 * 10) / 5;
 		}
 
-		SendMessage(m_sb, SB_SETPARTS, (WPARAM)m_parts, (LPARAM)
-			paParts);
+		std::vector<int> parts(m_parts, width);
 
-		LocalUnlock(hloc);
-		LocalFree(hloc);
+		for (int i = 1; i < m_parts; i++) {
+			parts[i] += parts[i - 1];
+		}
+		
+		SendMessage(m_sb, SB_SETPARTS, (WPARAM)m_parts, (LPARAM)parts.data());
 	}
+
+	void get_sb_height() {
+		RECT rcStatus;
+		if (GetWindowRect(m_sb, &rcStatus))
+		{
+			m_height = rcStatus.bottom - rcStatus.top;
+		}
+		else {
+			std::runtime_error("Failed to retrieve StatusBar height");
+		}
+	}
+
 	HWND m_sb{ NULL };
 	HWND m_parent{ NULL };
+	int m_parts{ 5 };
+
+	int m_height{-1};
 
 	DWORD m_styles{ WS_CHILD };
-
-	int m_parts{ 5 };
 };
 
 #endif
