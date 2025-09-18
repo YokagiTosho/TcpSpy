@@ -32,8 +32,8 @@
 *.app
 
 x64/
-TcpSpy/x64
 .vs/
+TcpSpy/x64
 *.user
 
 # remove emacs' files
