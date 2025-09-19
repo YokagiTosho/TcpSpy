@@ -76,7 +76,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 	while (GetMessage(&msg, nullptr, 0, 0))
 	{
-		if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
+		// correctly dispatch message to modeless find dialog to process keyboard keys
+		if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg) && listView && !IsDialogMessage(listView->get_find_dlg(), &msg))
 		{
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);

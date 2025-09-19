@@ -281,6 +281,8 @@ public:
 	void show_find_dlg() {
 		ShowWindow(m_find_dlg, SW_SHOW);
 	}
+
+	HWND get_find_dlg() const { return m_find_dlg; }
 private:
 	void init_image_list() {
 		m_image_list = ImageList_Create(
