@@ -34,6 +34,7 @@
 x64/
 .vs/
 TcpSpy/x64
+libTcpSpy/x64
 *.user
 
 # remove emacs' files
