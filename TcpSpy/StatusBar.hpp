@@ -49,15 +49,16 @@ public:
 	}
 
 	void update(ConnectionsTableManager &ctm) {
-		int counter[5] = { 0,0,0,0,0 };
-		
 		enum {
 			ALL_COUNT,
 			INET_COUNT,
 			INET6_COUNT,
 			TCP_COUNT,
 			UDP_COUNT,
+			COUNT, 
 		};
+		
+		int counter[COUNT]{};
 
 		counter[ALL_COUNT] = ctm.size();
 
@@ -98,6 +99,7 @@ public:
 	}
 
 	int height() const { return m_height; }
+
 private:
 	int set_text(char index, LPCWSTR text) {
 		WPARAM wParam = MAKEWPARAM(MAKEWORD(index, SBT_NOBORDERS), 0);
@@ -106,20 +108,21 @@ private:
 
 	void init() {
 		RECT rcClient;
-		int width;
+		int width, sb_width;
+
 		GetClientRect(m_parent, &rcClient);
-		int sb_width = rcClient.right;
+		sb_width = rcClient.right;
 	
 		if (sb_width > 1000) {
-			width = (sb_width / 1000 * 1000) / 5;
+			width = (sb_width / 1000 * 1000) / m_parts;
 		}
 		else if (sb_width > 100) {
-			width = (sb_width / 100 * 100) / 5;
+			width = (sb_width / 100 * 100) / m_parts;
 		}
 		else {
-			width = (sb_width / 10 * 10) / 5;
+			width = (sb_width / 10 * 10) / m_parts;
 		}
-
+		
 		std::vector<int> parts(m_parts, width);
 
 		for (int i = 1; i < m_parts; i++) {
