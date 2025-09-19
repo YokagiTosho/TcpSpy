@@ -255,9 +255,11 @@ public:
 			auto &r = m_mgr[row];
 			if (r->protocol() == ConnectionProtocol::PROTO_TCP) {
 
-				gCurrentCursor = gWaitCursor;
 				
 				if (!task_running) {
+					task_running = true;
+					gCurrentCursor = gWaitCursor;
+
 					m_dr.resolve_domain(
 						((ConnectionEntryTCP*)r.get())->remote_addr(),
 						r->address_family(),
@@ -273,7 +275,6 @@ public:
 							);
 						});
 				}
-				task_running = true;
 			}
 		}
 			break;
