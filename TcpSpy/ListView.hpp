@@ -189,6 +189,8 @@ public:
 	}
 
 	void resize() {
+		m_status_bar->resize();
+
 		RECT rc;
 
 		GetClientRect(m_parent, &rc);
@@ -200,7 +202,6 @@ public:
 			rc.bottom - rc.top - m_status_bar->height(),
 			TRUE
 		);
-		m_status_bar->resize();
 	}
 
 	template<typename Func>
@@ -210,6 +211,7 @@ public:
 
 	void show_popup(POINT pt) {
 		int row = get_selected_row();
+
 		if (row == -1) return; // if no row is selected, do not show popup menu
 
 		POINT orig_pt = pt;

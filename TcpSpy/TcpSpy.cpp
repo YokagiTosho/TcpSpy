@@ -1,8 +1,6 @@
 #include "framework.h"
 #include "TcpSpy.h"
 
-#include <algorithm>
-
 #include "libTcpSpy/ConnectionsTableManager.hpp"
 
 #include "FindDlg.hpp"

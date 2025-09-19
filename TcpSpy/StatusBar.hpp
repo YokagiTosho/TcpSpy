@@ -139,7 +139,7 @@ private:
 			m_height = rcStatus.bottom - rcStatus.top;
 		}
 		else {
-			std::runtime_error("Failed to retrieve StatusBar height");
+			throw std::runtime_error("Failed to retrieve StatusBar height");
 		}
 	}
 
