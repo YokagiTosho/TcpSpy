@@ -209,11 +209,12 @@ public:
 	}
 
 	void show_popup(POINT pt) {
-		POINT orig_pt = pt;
-		ScreenToClient(m_lv, &pt);
-
 		int row = get_selected_row();
 		if (row == -1) return; // if no row is selected, do not show popup menu
+
+		POINT orig_pt = pt;
+
+		ScreenToClient(m_lv, &pt);
 
 		PopupMenu popup_menu;
 
@@ -248,19 +249,29 @@ public:
 		break;
 		case PopupMenu::SelectedMenuItem::WhoIs:
 		{
+			static bool task_running = false;
 			auto &r = m_mgr[row];
 			if (r->protocol() == ConnectionProtocol::PROTO_TCP) {
 
 				gCurrentCursor = gWaitCursor;
-
-				m_dr.resolve_domain(
-					((ConnectionEntryTCP*)r.get())->remote_addr(),
-					r->address_family(),
-					[this](std::wstring &resolved_domain) {
-						gCurrentCursor = gArrowCursor;
-						// lambda will run inside thread, capture needed data here
-						MessageBox(this->m_lv, resolved_domain.size() ? resolved_domain.c_str() : L"Failed to resolve", L"Who is?", MB_OK);
-				});
+				
+				if (!task_running) {
+					m_dr.resolve_domain(
+						((ConnectionEntryTCP*)r.get())->remote_addr(),
+						r->address_family(),
+						[this](std::wstring& resolved_domain) {
+							gCurrentCursor = gArrowCursor;
+							// lambda will run inside thread, capture needed data here
+							task_running = false;
+							MessageBox(
+								this->m_lv,
+								resolved_domain.size() ?
+								resolved_domain.c_str() : L"Failed to resolve", L"Who is?",
+								MB_OK
+							);
+						});
+				}
+				task_running = true;
 			}
 		}
 			break;
@@ -331,7 +342,6 @@ private:
 		ListView_GetItemText(m_lv, row, col, buf, buf_size);
 	}
 
-	StatusBar::pointer m_status_bar;
 	int m_columns{ -1 };
 	const int m_first_column_len = 180;
 	const int m_column_len = 100;
@@ -342,6 +352,7 @@ private:
 	DWORD m_style{ WS_TABSTOP | WS_CHILD | WS_BORDER | WS_VISIBLE | LVS_AUTOARRANGE | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SINGLESEL };
 	HIMAGELIST m_image_list;
 
+	StatusBar::pointer m_status_bar;
 	ConnectionsTableManager& m_mgr;
 	DomainResolver m_dr;
 };
