@@ -3,6 +3,7 @@
 #include <string>
 #include <sstream>
 #include "windef.h"
+
 namespace Utils {
 	template<typename From, typename To = std::wstring>
 	inline To ConvertFrom(From from) {
@@ -16,6 +17,5 @@ namespace Utils {
 		return to;
 	}
 }
-
 
 #endif

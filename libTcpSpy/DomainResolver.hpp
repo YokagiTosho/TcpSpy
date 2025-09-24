@@ -27,7 +27,6 @@ public:
 		}
 
 		auto cached_domain = m_domain_cache.get(addr_str);
-
 		if (!cached_domain) {
 			// capture by value because thread will obviously outlive stack variables
 			m_thread_pool.submit([this, addr, addr_str, af, func]() {
@@ -40,17 +39,13 @@ public:
 					domain = Net::ResolveAddrToDomainName(std::get<IP6Address>(addr).data());
 					break;
 				}
-
 				this->m_domain_cache.set(addr_str, domain);
 				func(domain); // call callback with resolved domain
-
 				});
-
 			return std::nullopt;
 		}
 		else {
 			func(*cached_domain);
-
 			return *cached_domain;
 		}
 	}

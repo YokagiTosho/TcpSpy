@@ -74,6 +74,17 @@ public:
 
 	ProtocolFamily address_family() const { return m_af; }
 
+	std::wstring address_family_str() const {
+		switch (m_af) {
+		case ProtocolFamily::INET:
+			return L"IPv4";
+		case ProtocolFamily::INET6:
+			return L"IPv6";
+		default:
+			assert(false);
+		}
+	}
+
 	ConnectionProtocol protocol() const { return m_proto; }
 
 	const std::wstring local_addr_str() const {
@@ -92,7 +103,16 @@ public:
 		return Utils::ConvertFrom<DWORD>(m_proc->m_pid);
 	}
 
-	std::wstring proto_str() const { return Utils::ConvertFrom<int>((int)m_proto); }
+	std::wstring proto_str() const {
+		switch (m_proto) {
+		case ConnectionProtocol::PROTO_TCP:
+			return L"TCP";
+		case ConnectionProtocol::PROTO_UDP:
+			return L"UDP";
+		default:
+			assert(false);
+		}
+	}
 
 	HICON icon() const { return m_proc->m_icon; }
 
