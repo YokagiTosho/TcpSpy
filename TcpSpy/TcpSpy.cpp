@@ -168,8 +168,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			WCHAR lpFilePathBuf[filePathBufLen] = L"connections.csv";
 			if (MShell::GetSaveFilePath(hWnd, lpFilePathBuf, filePathBufLen)) {
 				if (SaveConnectionsToCSV(lpFilePathBuf, connectionsManager)) {
-					int n = 5;
-					n += 10;
 				}
 			}
 		}
@@ -332,10 +330,15 @@ static bool SaveConnectionsToCSV(LPCWSTR filePath, ConnectionsTableManager& mgr)
 	if (!ofs) return false;
 
 	int i = 0;
-	for (; i < columns.size()-1; i++) {
-		ofs << columns[i] << ";";
+	for (; i < columns.size(); i++) {
+		ofs << columns[i];
+		if (i != columns.size() - 1) {
+			ofs << ";";
+		}
+		else {
+			ofs << std::endl;
+		}
  	}
-	ofs << columns[i] << std::endl;
 
 	for (auto& row : mgr) {
 		ofs << row->get_process_name()
