@@ -30,23 +30,14 @@ public:
 		for (int i = 0; i < m_workers_size; i++) {
 			m_queue.push(nullptr);
 		}
-
 		for (int i = 0; i < m_workers_size; i++) {
 			m_workers[i].join();
 		}
 	}
 private:
 	void worker_main_loop() {
-		while (true) {
-			auto task = m_queue.pop();
-
-			if (!task) {
-				// signal that work is done, just return
-				return;
-			}
-
-			task();
-		}
+		Task task = nullptr;
+		while (task = m_queue.pop()) { task(); }
 	}
 
 	int m_workers_size;
