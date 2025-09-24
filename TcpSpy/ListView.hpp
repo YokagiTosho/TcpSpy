@@ -259,8 +259,8 @@ public:
 				m_dr.resolve_domain(
 					((ConnectionEntryTCP*)row.get())->remote_addr(),
 					row->address_family(),
+					// lambda will run inside thread, capture needed data here
 					[this, i](std::wstring& resolved_domain) {
-						// lambda will run inside thread, capture needed data here
 						if (resolved_domain.size()) {
 							ListView_SetItemText(m_lv, i, (int)Column::RemoteAddress, (LPWSTR)resolved_domain.c_str());
 						}

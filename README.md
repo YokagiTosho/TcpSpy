@@ -8,6 +8,7 @@ Features
 * Copy value from list
 * Find rows by columns
 * Reverse DNS lookup
+* Save ListView to CSV file
 
 Compilation
 -----------
