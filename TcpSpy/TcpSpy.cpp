@@ -5,7 +5,6 @@
 
 #include "FindDlg.hpp"
 #include "ListView.hpp"
-#include "Cursor.hpp"
 
 #define MAX_LOADSTRING 100
 
@@ -135,7 +134,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		// init windows that depend on main window, initialize them
 		Menu = GetMenu(hWnd);
 		InitListView(hWnd);
-		InitCursors();
 	}
 		break;
 	case WM_COMMAND:
@@ -163,6 +161,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			ChangeFilter(wmId);
 			listView->update(); // refresh items after applied filters
 			break;
+		case ID_CONNECTIONS_RESOLVEREMOTES:
+			listView->resolve_addresses();
+			break;
 		case ID_QUICKEXIT:
 		case IDM_EXIT:
 			DestroyWindow(hWnd);
@@ -181,9 +182,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		break;
+#if 0
 	case WM_SETCURSOR:
 		SetCursor(gCurrentCursor);
 		return TRUE;
+#endif
 	default:
 		return DefWindowProc(hWnd, message, wParam, lParam);
 	}

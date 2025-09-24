@@ -12,7 +12,7 @@
 #include "libTcpSpy/Column.hpp"
 
 #include "PopupMenu.hpp"
-#include "Cursor.hpp"
+//#include "Cursor.hpp"
 
 #include "Shell.hpp"
 #include "Clipboard.hpp"
@@ -225,7 +225,8 @@ public:
 
 		PopupMenu popup_menu;
 
-		popup_menu.set_items({ L"Copy", L"WhoIs", L"Properties"});
+		//popup_menu.set_items({ L"Copy", L"WhoIs", L"Properties" });
+		popup_menu.set_items({ L"Copy", L"Properties"});
 
 		int cmd = popup_menu.show(m_lv, orig_pt.x, orig_pt.y);
 
@@ -254,40 +255,27 @@ public:
 			Shell::Properties(m_lv, proc_path.c_str());
 		}
 		break;
-		case PopupMenu::SelectedMenuItem::WhoIs:
-		{
-			static bool task_running = false;
-			auto &r = m_mgr[row];
-			if (r->protocol() == ConnectionProtocol::PROTO_TCP) {
-
-				
-				if (!task_running) {
-					task_running = true;
-					gCurrentCursor = gWaitCursor;
-
-					m_dr.resolve_domain(
-						((ConnectionEntryTCP*)r.get())->remote_addr(),
-						r->address_family(),
-						[this](std::wstring& resolved_domain) {
-							gCurrentCursor = gArrowCursor;
-							// lambda will run inside thread, capture needed data here
-							task_running = false;
-							MessageBox(
-								this->m_lv,
-								resolved_domain.size() ?
-								resolved_domain.c_str() : L"Failed to resolve", L"Who is?",
-								MB_OK
-							);
-						});
-				}
-			}
-		}
-			break;
 		}
 	}
 
 	void show_find_dlg() {
 		ShowWindow(m_find_dlg, SW_SHOW);
+	}
+
+	void resolve_addresses() {
+		for (int i = 0; i < m_mgr.size(); i++) {
+			auto& row = m_mgr[i];
+			if (row->protocol() == ConnectionProtocol::PROTO_TCP) {
+				m_dr.resolve_domain(
+					((ConnectionEntryTCP*)row.get())->remote_addr(),
+					row->address_family(),
+					[this, i](std::wstring& resolved_domain) {
+						// lambda will run inside thread, capture needed data here
+						if (resolved_domain.size())
+							ListView_SetItemText(m_lv, i, (int)Column::RemoteAddress, (LPWSTR)resolved_domain.c_str());
+					});
+			}
+		}
 	}
 
 	HWND get_find_dlg() const { return m_find_dlg; }

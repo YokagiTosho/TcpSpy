@@ -26,7 +26,7 @@ public:
 			break;
 		}
 
-		std::optional<std::wstring> cached_domain = m_domain_cache.get(addr_str);
+		auto cached_domain = m_domain_cache.get(addr_str);
 
 		if (!cached_domain) {
 			// capture by value because thread will obviously outlive stack variables
@@ -58,6 +58,7 @@ public:
 	~DomainResolver() {
 		m_thread_pool.stop();
 	}
+
 private:
 	Cache<std::wstring, std::wstring> m_domain_cache{};
 	ThreadPool m_thread_pool{ 5 };
