@@ -54,6 +54,11 @@ public:
 			L"IP version", L"Local Address", L"Local Port", 
 			L"Remote Address", L"Remote Port", L"State",
 			});
+
+		m_tooltip = CreateWindow(TOOLTIPS_CLASS, NULL,
+			WS_POPUP | TTS_NOPREFIX | TTS_ALWAYSTIP,
+			CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
+			m_lv, NULL, NULL, NULL);
 	};
 
 	ListView(const ListView& lv) = delete;
@@ -356,6 +361,7 @@ private:
 	HWND m_find_dlg;
 	DWORD m_style{ WS_TABSTOP | WS_CHILD | WS_BORDER | WS_VISIBLE | LVS_AUTOARRANGE | LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SINGLESEL };
 	HIMAGELIST m_image_list;
+	HWND m_tooltip;
 
 	StatusBar::pointer m_status_bar;
 	ConnectionsTableManager& m_mgr;
