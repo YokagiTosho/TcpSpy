@@ -1,6 +1,9 @@
 #include "framework.h"
 #include "TcpSpy.h"
 
+#include <fstream>
+
+#include "libTcpSpy/Utils.hpp"
 #include "libTcpSpy/ConnectionsTableManager.hpp"
 
 #include "FindDlg.hpp"
@@ -20,7 +23,6 @@ const std::array<std::wstring, (int)Column::Count> columns {
 
 ListView::pointer listView;
 ConnectionsTableManager connectionsManager;
-
 HMENU Menu;
 
 // key is ID of menu item, std::pair is filter with bool value turned on/off filter
@@ -44,6 +46,7 @@ static void HandleWM_NOTIFY(LPARAM lParam);
 static void CheckUncheckMenuItem(int menu_item_id, int flag);
 static void ModFilter(ConnectionsTableManager::Filters filter, bool value);
 static void InitListView(HWND hWnd);
+static bool SaveConnectionsToCSV(LPCWSTR filePath, ConnectionsTableManager& mgr);
 static void ChangeFilter(int id);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
@@ -88,7 +91,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
 ATOM MyRegisterClass(HINSTANCE hInstance)
 {
-	WNDCLASSEXW wcex;
+	WNDCLASSEXW wcex{};
 
 	wcex.cbSize = sizeof(WNDCLASSEX);
 
@@ -130,11 +133,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	switch (message)
 	{
 	case WM_CREATE:
-	{
 		// init windows that depend on main window, initialize them
 		Menu = GetMenu(hWnd);
 		InitListView(hWnd);
-	}
 		break;
 	case WM_COMMAND:
 	{
@@ -160,6 +161,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case ID_VIEW_UDP:
 			ChangeFilter(wmId);
 			listView->update(); // refresh items after applied filters
+			break;
+		case ID_FILE_SAVE:
+		{
+			constexpr int filePathBufLen = 512;
+			WCHAR lpFilePathBuf[filePathBufLen] = L"connections.csv";
+			if (MShell::GetSaveFilePath(hWnd, lpFilePathBuf, filePathBufLen)) {
+				if (SaveConnectionsToCSV(lpFilePathBuf, connectionsManager)) {
+					int n = 5;
+					n += 10;
+				}
+			}
+		}
 			break;
 		case ID_CONNECTIONS_RESOLVEREMOTES:
 			listView->resolve_addresses();
@@ -311,4 +324,49 @@ static void InitListView(HWND hWnd) {
 	listView->init_list(columns);
 
 	listView->update();
+}
+
+static bool SaveConnectionsToCSV(LPCWSTR filePath, ConnectionsTableManager& mgr) {
+	std::wofstream ofs({ filePath });
+
+	if (!ofs) return false;
+
+	int i = 0;
+	for (; i < columns.size()-1; i++) {
+		ofs << columns[i] << ";";
+ 	}
+	ofs << columns[i] << std::endl;
+
+	for (auto& row : mgr) {
+		ofs << row->get_process_name()
+			<< ";"
+			<< row->pid_str()
+			<< ";"
+			<< row->proto_str()
+			<< ";"
+			<< row->address_family_str()
+			<< ";"
+			<< row->local_addr_str()
+			<< ";"
+			<< row->local_port_str();
+			
+		if (row->protocol() == ConnectionProtocol::PROTO_TCP) {
+			ConnectionEntryTCP* tcp_row = nullptr;
+			if (tcp_row = dynamic_cast<ConnectionEntryTCP*>(row.get())) {
+				ofs << ";";
+				ofs << tcp_row->remote_addr_str()
+					<< ";"
+					<< tcp_row->remote_port_str()
+					<< ";"
+					<< tcp_row->state_str();
+			}
+			else {
+				return false;
+			}
+		}
+
+		ofs << std::endl;
+	}
+
+	return true;
 }
