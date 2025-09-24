@@ -7,6 +7,7 @@
 #include <functional>
 
 #include "Cache.hpp"
+#include "ThreadPool.hpp"
 
 class DomainResolver {
 public:
@@ -29,7 +30,7 @@ public:
 
 		if (!cached_domain) {
 			// capture by value because thread will obviously outlive stack variables
-			std::thread([this, addr, addr_str, af, func]() {
+			m_thread_pool.submit([this, addr, addr_str, af, func]() {
 				std::wstring domain;
 				switch (af) {
 				case ProtocolFamily::INET:
@@ -43,7 +44,7 @@ public:
 				this->m_domain_cache.set(addr_str, domain);
 				func(domain); // call callback with resolved domain
 
-				}).detach();
+				});
 
 			return std::nullopt;
 		}
@@ -53,8 +54,13 @@ public:
 			return *cached_domain;
 		}
 	}
+
+	~DomainResolver() {
+		m_thread_pool.stop();
+	}
 private:
 	Cache<std::wstring, std::wstring> m_domain_cache{};
+	ThreadPool m_thread_pool{ 5 };
 };
 
 #endif

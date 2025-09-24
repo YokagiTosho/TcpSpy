@@ -131,6 +131,7 @@
     <ClCompile Include="libTcpSpy.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="BlockingQueue.hpp" />
     <ClInclude Include="Cache.hpp" />
     <ClInclude Include="Column.hpp" />
     <ClInclude Include="ConnectionEntry.hpp" />
@@ -139,6 +140,7 @@
     <ClInclude Include="DomainResolver.hpp" />
     <ClInclude Include="Net.hpp" />
     <ClInclude Include="Process.hpp" />
+    <ClInclude Include="ThreadPool.hpp" />
     <ClInclude Include="Utils.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
