@@ -119,19 +119,10 @@ public:
 			tmp = row->pid_str();
 			break;
 		case Column::Protocol:
-			switch (row->protocol()) {
-			case ConnectionProtocol::PROTO_TCP: return (LPWSTR)L"TCP";
-			case ConnectionProtocol::PROTO_UDP: return (LPWSTR)L"UDP";
-			default:
-				assert(false);
-				break;
-			}
+			tmp = row->proto_str();
 			break;
 		case Column::INET:
-			switch (row->address_family()) {
-			case ProtocolFamily::INET:  return (LPWSTR)L"IPv4";
-			case ProtocolFamily::INET6: return (LPWSTR)L"IPv6";
-			}
+			tmp = row->address_family_str();
 			break;
 		case Column::LocalAddress:
 			tmp = row->local_addr_str();
@@ -225,7 +216,6 @@ public:
 
 		PopupMenu popup_menu;
 
-		//popup_menu.set_items({ L"Copy", L"WhoIs", L"Properties" });
 		popup_menu.set_items({ L"Copy", L"Properties"});
 
 		int cmd = popup_menu.show(m_lv, orig_pt.x, orig_pt.y);
@@ -252,7 +242,7 @@ public:
 		{
 			const auto& proc_path = m_mgr[row]->proc().m_path;
 			// start windows' 'properites' window
-			Shell::Properties(m_lv, proc_path.c_str());
+			MShell::Properties(m_lv, proc_path.c_str());
 		}
 		break;
 		}
@@ -271,8 +261,9 @@ public:
 					row->address_family(),
 					[this, i](std::wstring& resolved_domain) {
 						// lambda will run inside thread, capture needed data here
-						if (resolved_domain.size())
+						if (resolved_domain.size()) {
 							ListView_SetItemText(m_lv, i, (int)Column::RemoteAddress, (LPWSTR)resolved_domain.c_str());
+						}
 					});
 			}
 		}
