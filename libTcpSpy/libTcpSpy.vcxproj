@@ -138,6 +138,7 @@
     <ClInclude Include="ConnectionsTable.hpp" />
     <ClInclude Include="ConnectionsTableManager.hpp" />
     <ClInclude Include="DomainResolver.hpp" />
+    <ClInclude Include="FileSaver.hpp" />
     <ClInclude Include="Net.hpp" />
     <ClInclude Include="Process.hpp" />
     <ClInclude Include="ThreadPool.hpp" />

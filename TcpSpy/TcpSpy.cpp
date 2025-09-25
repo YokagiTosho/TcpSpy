@@ -6,20 +6,16 @@
 #include "libTcpSpy/Utils.hpp"
 #include "libTcpSpy/ConnectionsTableManager.hpp"
 
+#include "Consts.hpp"
 #include "FindDlg.hpp"
 #include "ListView.hpp"
+#include "FileSaverCSV.hpp"
 
 #define MAX_LOADSTRING 100
 
 HINSTANCE hInst;                                // current instance
 WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
-
-const std::array<std::wstring, (int)Column::Count> columns { 
-	L"Process name", L"PID", L"Protocol",
-	L"IP version", L"Local Address", L"Local Port",
-	L"Remote Address", L"Remote Port", L"State",
-};
 
 ListView::pointer listView;
 ConnectionsTableManager connectionsManager;
@@ -34,6 +30,7 @@ std::unordered_map<int, std::pair<ConnectionsTableManager::Filters, bool>> MenuF
 	{ ID_VIEW_UDP,       { ConnectionsTableManager::Filters::UDP,             true} },
 };
 
+
 ATOM             MyRegisterClass(HINSTANCE hInstance);
 BOOL             InitInstance(HINSTANCE, int);
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
@@ -46,7 +43,7 @@ static void HandleWM_NOTIFY(LPARAM lParam);
 static void CheckUncheckMenuItem(int menu_item_id, int flag);
 static void ModFilter(ConnectionsTableManager::Filters filter, bool value);
 static void InitListView(HWND hWnd);
-static bool SaveConnectionsToCSV(LPCWSTR filePath, ConnectionsTableManager& mgr);
+//static bool SaveConnectionsToCSV(LPCWSTR filePath, ConnectionsTableManager& mgr);
 static void ChangeFilter(int id);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
@@ -167,8 +164,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			constexpr int filePathBufLen = 512;
 			WCHAR lpFilePathBuf[filePathBufLen] = L"connections.csv";
 			if (MShell::GetSaveFilePath(hWnd, lpFilePathBuf, filePathBufLen)) {
-				if (SaveConnectionsToCSV(lpFilePathBuf, connectionsManager)) {
-				}
+				FileSaverCSV saver = FileSaverCSV(lpFilePathBuf);
+				saver.save(connectionsManager);
 			}
 		}
 			break;
@@ -319,57 +316,7 @@ static void InitListView(HWND hWnd) {
 
 	listView->set_subclass(ListViewSubclassProc);
 
-	listView->init_list(columns);
+	listView->init_list(COLUMNS);
 
 	listView->update();
-}
-
-static bool SaveConnectionsToCSV(LPCWSTR filePath, ConnectionsTableManager& mgr) {
-	std::wofstream ofs({ filePath });
-
-	if (!ofs) return false;
-
-	int i = 0;
-	for (; i < columns.size(); i++) {
-		ofs << columns[i];
-		if (i != columns.size() - 1) {
-			ofs << ";";
-		}
-		else {
-			ofs << std::endl;
-		}
- 	}
-
-	for (auto& row : mgr) {
-		ofs << row->get_process_name()
-			<< ";"
-			<< row->pid_str()
-			<< ";"
-			<< row->proto_str()
-			<< ";"
-			<< row->address_family_str()
-			<< ";"
-			<< row->local_addr_str()
-			<< ";"
-			<< row->local_port_str();
-			
-		if (row->protocol() == ConnectionProtocol::PROTO_TCP) {
-			ConnectionEntryTCP* tcp_row = nullptr;
-			if (tcp_row = dynamic_cast<ConnectionEntryTCP*>(row.get())) {
-				ofs << ";";
-				ofs << tcp_row->remote_addr_str()
-					<< ";"
-					<< tcp_row->remote_port_str()
-					<< ";"
-					<< tcp_row->state_str();
-			}
-			else {
-				return false;
-			}
-		}
-
-		ofs << std::endl;
-	}
-
-	return true;
 }

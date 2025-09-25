@@ -68,6 +68,14 @@ public:
 		return m_rows.end();
 	}
 
+	ConnectionEntryPtrs::const_iterator begin() const {
+		return m_rows.cbegin();
+	}
+
+	ConnectionEntryPtrs::const_iterator end() const {
+		return m_rows.cend();
+	}
+
 	ConnectionEntryPtrs::value_type& operator[](int i) {
 		return m_rows[i];
 	}

@@ -45,12 +45,21 @@
     <ClInclude Include="FindDlg.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="FileSaverCSV.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Consts.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TcpSpy.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="FindDlg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Consts.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
